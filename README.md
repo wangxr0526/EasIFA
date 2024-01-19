@@ -1,6 +1,9 @@
 # EasIFA
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) <br>
 Implementation of enzyme catalytic acitve site prediction with EasIFA<br><br>
+
+The high-definition images from the paper can be found at `paper_figures`.
+
 ![EasIFA](./img/main-model_structures.png)
 
 
