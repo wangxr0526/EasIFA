@@ -1,0 +1,29 @@
+# List the start up tasks. Learn more https://www.gitpod.io/docs/config-start-tasks/
+tasks:
+  - init: > 
+      wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/Minconda3.sh &&
+      bash /tmp/Minconda3.sh -b -p /workspace/miniconda3 &&
+      echo "export PATH=/workspace/miniconda3/bin:$PATH" >> ~/.bashrc &&
+      source ~/.bashrc &&
+      pip install gdown &&
+      mkdir -p ~/.cache/torch/hub/checkpoints &&
+      wget https://dl.fbaipublicfiles.com/fair-esm/models/esm2_t33_650M_UR50D.pt -O ~/.cache/torch/hub/checkpoints/esm2_t33_650M_UR50D.pt &&
+      gdown https://drive.google.com/uc?id=1kLIx2h6kPk6OvRVPWWqJvoKAYVvBx80x -O /workspace/miniconda3/envs/easifa_env.tar.gz &&
+      gdown https://drive.google.com/uc?id=1pf0pMNELXYR9yU_w3ZkJL0rjbjqHBQaB -O /workspace/EasIFA/checkpoints.zip &&
+      unzip checkpoints.zip &&
+      mkdir /workspace/miniconda3/envs/easifa_env &&
+      tar -xvf /workspace/miniconda3/envs/easifa_env.tar.gz -C /workspace/miniconda3/envs/easifa_env &&
+      source activate /workspace/miniconda3/envs/easifa_env &&
+      conda unpack &&
+      pip uninstall fair-esm -y && pip install git+https://github.com/facebookresearch/esm.git &&
+      pip install mysql-connector-python==8.2.0 mysqlclient==2.2.1 &&
+      sudo apt-get install aria2 -y
+
+    command: >
+      cd /workspace/EasIFA/webapp &&
+      /workspace/miniconda3/envs/easifa_env/bin/python app.py
+
+# List the ports to expose. Learn more https://www.gitpod.io/docs/config-ports/
+ports:
+  - port: 8000
+    onOpen: open-preview

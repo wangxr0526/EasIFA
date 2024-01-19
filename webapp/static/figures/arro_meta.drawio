@@ -1,0 +1,22 @@
+<mxfile host="65bd71144e">
+    <diagram id="9itCk8urc6HBTd30JS7-" name="第 1 页">
+        <mxGraphModel dx="838" dy="970" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="Vo0PkW46igDp5xd-zQts-1" value="" style="triangle;whiteSpace=wrap;html=1;rotation=-90;fillColor=#575757;strokeColor=none;opacity=30;sketch=0;rounded=0;fontColor=#333333;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="340" width="30" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="Vo0PkW46igDp5xd-zQts-2" value="" style="triangle;whiteSpace=wrap;html=1;rotation=-90;fillColor=#575757;strokeColor=none;opacity=60;sketch=0;rounded=0;fontColor=#333333;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="350" width="30" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="Vo0PkW46igDp5xd-zQts-3" value="" style="triangle;whiteSpace=wrap;html=1;rotation=-90;fillColor=#575757;strokeColor=none;sketch=0;rounded=0;fontColor=#333333;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="360" width="30" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="Vo0PkW46igDp5xd-zQts-4" value="" style="rounded=0;whiteSpace=wrap;html=1;shadow=1;sketch=0;strokeColor=none;fillColor=none;opacity=30;" parent="1" vertex="1">
+                    <mxGeometry x="605" y="480" width="200" height="30" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

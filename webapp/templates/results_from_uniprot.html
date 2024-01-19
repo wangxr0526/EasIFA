@@ -1,0 +1,288 @@
+{% import 'wtf.html' as wtf %}
+<!DOCTYPE HTML>
+<!--
+	Theory by TEMPLATED
+	templated.co @templatedco
+	Released for free under the Creative Commons Attribution 3.0 license (templated.co/license)
+-->
+<html>
+
+<head>
+    <title>EasIFA Prediction Results From UniProt</title>
+    <meta charset="utf-8">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="static/assets/css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="/static/images/favicon.ico">
+    {% block head %}
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: auto;
+            background-color: #ffffff; 
+            box-sizing: border-box;
+            margin-top: 30px; /* 假设 header 的高度是 100px */
+            display: flex;
+            justify-content: center;
+            flex-direction: column; /* 使得container在中间 */
+          }
+          .container {
+            max-width: 1440px; /* 设置最大宽度 */
+            width: 100%; /* 适应屏幕宽度，直到最大宽度 */
+            margin: 20px auto; /* 上下保持20px间距，左右自动居中 */
+            height: 100%;
+            background-color: #f0f0f0;
+            border-radius: 15px; /* 圆角矩形 */
+            padding: 5px;
+          }
+          .section {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+          .two-columns {
+            display: flex;
+            justify-content: space-between;
+          }
+          .left-column {
+            width: 49%; /* 每列占据一半宽度，留出间隙 */
+          }
+          .right-column {
+            width: 49%; /* 每列占据一半宽度，留出间隙 */
+            text-align: center;
+            vertical-align: middle;
+          }
+          .rounded-section {
+            background-color: #ffffff; /* 白色背景 */
+            border-radius: 15px; /* 圆角矩形 */
+            padding: 20px; /* 内边距 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* 轻微的阴影效果 */
+            flex-grow: 1; /* 允许伸展以填充容器 */
+            margin: 10px; /* 保持部分之间的间距 */
+
+          }
+          /* 使得section之间有间距，并且圆角 */
+          .section + .section {
+            margin-top: 20px;
+          }
+
+          .column-center {
+            display: flex;
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+          }
+          .sequence-container {
+            font-family: 'Courier New', monospace;
+            background-color: #fffdfd00; /* 背景色 */
+            padding: 10px;
+            padding-top: 30px; /* 增加顶部内边距以容纳第一行的索引号 */
+            border-radius: 8px;
+            max-width: 100%; /* 容器宽度调整为100% */
+            margin: auto;
+            overflow-x: auto; /* 容器内容超出时允许横向滚动 */
+        }
+        
+        .sequence-block {
+            display: flex; /* 使用flex布局 */
+            flex-wrap: wrap; /* 允许内容换行 */
+            gap: 10px; /* 块之间的间距 */
+            align-items: flex-start; /* 对齐到容器的顶部 */
+            margin-top: 20px; /* 留出空间放置顶部索引号 */
+        }
+        
+        .amino-acid-group {
+            position: relative; /* 设定相对定位 */
+            margin-bottom: 20px; /* 留出空间放置索引号 */
+        }
+        
+        .amino-acid-sequence {
+            padding-right: 5px; /* 保持序列间的间距 */
+            font-size:medium; /* 增加字体大小 */
+            font-weight: bold; /* 字体加粗 */
+            color: #000000;
+        }
+        
+        .amino-acid-index {
+            position: absolute; /* 绝对定位 */
+            top: -20px; /* 调整以放置于序列上方 */
+            right: 0; /* 放置于序列右侧 */
+            font-weight: bold; /* 字体加粗 */
+            font-size: medium; /* 增加字体大小 */
+            color: #000000;
+        }
+
+        /* 新的样式 */
+        .result-card {
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); /* 添加阴影效果 */
+            transition: 0.3s; /* 平滑过渡效果 */
+            margin-bottom: 20px; /* 结果卡片间的间隔 */
+        }
+
+        .result-card:hover {
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2); /* 鼠标悬停时的阴影效果 */
+        }
+        .result-title {
+            color: #333; /* 标题颜色 */
+            font-size: 18px; /* 标题大小 */
+            font-weight: bold; /* 标题字体加粗 */
+            padding: 10px 15px; /* 标题内边距 */
+            text-align: left; /* 文本对齐方式 */
+        }
+        .result-content {
+            padding: 20px; /* 结果内容的内边距 */
+        }
+        .result-title-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 0;
+            font-size: 1.5rem;
+            padding: 10px 0;
+            text-align: center;
+        }
+        /* New CSS to remove the underline from the button */
+        .result-title-center .btn-link {
+            text-decoration: none; /* Removes the underline */
+            color: inherit; /* Keeps the button's text color consistent with its parent */
+        }
+
+        .svg-image {
+            min-height: 100px; /* 设置最小高度 */
+            width: auto; /* 宽度自动调整 */
+            height: auto; /* 高度自动调整 */
+        }
+        
+    
+    </style>
+    {% endblock %}
+</head>
+
+<body class="subpage">
+    <header id="header">
+        <div class="inner">
+			<a href="/" class="logo">EasIFA</a>
+            <nav id="nav"><a href="/">Home</a>
+                <a href="/from_structure">From Structure</a>
+                <a href="/from_uniprot">From UniProt</a>
+            </nav>
+            <a href="#navPanel" class="navPanelToggle"><span class="fa fa-bars"></span></a>
+        </div>
+    </header><!-- Main -->
+    
+    {% if ret.error %}
+    <div>
+        <h2 style="text-align: center;">Error</h2>
+        <h3 style="text-align: center;">{{ ret.error }}</h3>
+    </div>
+    {% else %}
+    {% for result in ret.results %}
+    <div id="result-{{ result[0] }}" class="result-card accordion">
+        <div class="result-header card-header" id="heading-{{ result[0] }}">
+            <div class="result-title-center">
+                <button class="btn {{ 'collapsed' if idx != 0 else '' }}" data-toggle="collapse" data-target="#collapse-{{ result[0] }}" aria-expanded="{{ 'true' if result[0] == 0 else 'false' }}" aria-controls="collapse-{{ result[0] }}">
+                    <span class="result-title">Result {{ result[0] + 1 }}</span>
+                </button>
+            </div>
+
+            <div id="collapse-{{ result[0]  }}" class="collapse {{ 'show' if result[0]  == 0 else '' }}" aria-labelledby="heading-{{ result[0]  }}" data-parent="#result-{{ result[0]  }}">
+                <div class="container">
+                    <div class="section two-columns">
+                        <div class="left-column" style="box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);border-radius: 15px; background-color: #ffffff;">
+                        <!-- 第一部分的左列内容 -->
+                        <div class="sequence-container">
+                            
+                            <div class="sequence-block">
+                                {% for sequence_block_info in result[4] %}
+                                <div class="amino-acid-group">
+                                    <span class="amino-acid-sequence">
+                                        {%- for aa, color in  sequence_block_info[0] | zip(sequence_block_info[2]) -%}
+                                            {%- if aa == "&" -%}
+                                                &nbsp;
+                                            {%- else -%}
+                                                <span style="color: {{ color }};">{{ aa }}</span>
+                                            {%- endif -%}
+                                        {%- endfor -%}
+                                    </span>
+                                    {% if sequence_block_info[1] %}
+                                        <span class="amino-acid-index">{{ sequence_block_info[1] }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+
+                                <!-- ...更多的amino-acid-group... -->
+                            </div>
+                            
+                        </div>
+                        </div>
+                        <div class="right-column column-center" style="box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);border-radius: 15px; background-color: #ffffff;">
+                        <!-- 第一部分的右列内容 -->
+                            <p>
+                                {{result[1] | safe }} 
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="section rounded-section column-center">
+                        <!-- 第二部分的内容 -->
+
+                            <img src="/static/rxn_fig/{{ result[2] }}" width="1200" height="400" 
+                                                type="image/svg+xml" wmode="transparent" />
+                    </div>
+                    
+                    <div class="section rounded-section">
+                        <!-- 第三部分的内容 -->
+                        <p><table id="mytable" class="table table-striped">
+                            <thead class="thead-light">
+                                <tr style="vertical-align: middle;">
+                                    <th style="text-align:center">Residue Index</th>
+                                    <th style="text-align:center">Residue Name</th>
+                                    <th style="text-align:center">Active Site Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for x in result[3] %}
+                                <tr style="vertical-align: middle;">
+                                    <td style="text-align:center">
+                                        <strong>{{ x[0] }}</strong>
+                                    </td>
+                                    <td style="text-align:center">
+                                        <strong>{{ x[1] }}</strong>
+                                    </td>
+                                    <td style="text-align:center">
+                                        <strong style="color: {{ x[2] }};">{{ x[3] }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table></p>
+                    </div>
+                
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    </body>
+</html>
+
+
+
+
+    <!-- Scripts -->
+    <script src="static/assets/js/skel.min.js"></script>
+    <script src="static/assets/js/util.js"></script>
+    <script src="static/assets/js/main.js"></script>
+    
+
+</body>
+</html>

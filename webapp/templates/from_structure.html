@@ -1,0 +1,493 @@
+{% import 'wtf.html' as wtf %}
+<!DOCTYPE HTML>
+<!--
+	Theory by TEMPLATED
+	templated.co @templatedco
+	Released for free under the Creative Commons Attribution 3.0 license (templated.co/license)
+-->
+<html>
+
+<head>
+    <title>EasIFA From Structures</title>
+    <meta charset="utf-8">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="static/assets/css/main.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="/static/images/favicon.ico">
+
+
+    {% block head %}
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: auto;
+            background-color: #ffffff;
+            box-sizing: border-box;
+            margin-top: 30px;
+            /* 假设 header 的高度是 100px */
+            font-family: "Raleway", Arial, Helvetica, sans-serif;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            /* 使得container在中间 */
+        }
+
+        .container {
+
+            max-width: 1440px;
+            /* 设置最大宽度 */
+            width: 100%;
+            /* 适应屏幕宽度，直到最大宽度 */
+            margin: 15px auto;
+            /* 上下保持20px间距，左右自动居中 */
+            height: 100%;
+            background-color: #ffffff;
+
+        }
+
+        .section {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .two-columns {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .left-column {
+            width: 49%;
+            /* 每列占据一半宽度，留出间隙 */
+            vertical-align: middle;
+            padding: 20px;
+        }
+
+        .right-column {
+            width: 49%;
+            /* 每列占据一半宽度，留出间隙 */
+            vertical-align: middle;
+            padding: 20px;
+        }
+
+        .rounded-section {
+            background-color: #ffffff;
+            /* 白色背景 */
+            border-radius: 15px;
+            /* 圆角矩形 */
+            padding: 20px;
+            /* 内边距 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            /* 轻微的阴影效果 */
+            flex-grow: 1;
+            /* 允许伸展以填充容器 */
+            margin: 10px;
+            /* 保持部分之间的间距 */
+
+        }
+
+        /* 使得section之间有间距，并且圆角 */
+        .section+.section {
+            margin-top: 20px;
+        }
+
+        #enzyme_structure {
+            display: flex;
+            width: 100%;
+            /* 或者你需要的宽度 */
+            height: 450px;
+            /* 或者你需要的高度 */
+            border: 1px solid #ccc;
+            /* 一个简单的边框，可以看到这个框，即使它是空的 */
+            margin-bottom: 0px;
+            /* 如果需要的话，添加一些外边距 */
+            padding: 10px;
+            /* 如果需要的话，添加一些内边距 */
+            box-sizing: border-box;
+            font: sans-serif;
+            font-size: 2em;
+            text-align: center;
+            color: #cacaca;
+            justify-content: center;
+            /* 水平居中 */
+            align-items: center;
+            /* 垂直居中 */
+
+        }
+
+        .form-input,
+        .custom-file-input {
+            display: block;
+            /* Makes elements block-level, taking the full width available */
+            width: 95%;
+            /* Adjust the width as necessary, ensure it's the same for both */
+            margin: 0 auto 15px;
+            /* Centers the elements and adds space below */
+            padding: 10px;
+            /* Adds some padding inside the elements */
+            border: 1px solid #ccc;
+            /* Gives a border to the elements */
+            border-radius: 1px;
+            /* Rounds the corners of the elements */
+            line-height: 1.5;
+            /* Adjusts the line height for any text inside */
+            font-size: 16px;
+            /* Ensures font size is the same for both */
+            background-color: #c5c5c5;
+            /* Sets the background color to white */
+            color: #333;
+            /* Sets the text color */
+        }
+
+
+
+
+        .form-control:focus,
+        .custom-file-input:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+        }
+
+        /* 如果你的上传控件需要按钮样式，你可以添加以下CSS */
+        .custom-file-button {
+            display: block;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: -1px;
+            /* 使得按钮与文件输入框对齐 */
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .custom-file-button:hover {
+            background-color: #e9ecef;
+        }
+
+        .text-padding {
+            padding-top: 10%;
+            padding-bottom: 5%;
+        }
+
+        .modal-dialog {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .modal.fade .modal-dialog {
+            transition: transform .3s ease-out;
+            transform: translateY(0);
+        }
+
+        .modal.show .modal-dialog {
+            transform: translateY(0);
+        }
+
+        #footer {
+            background: #090F18;
+            /* 应与页面头部背景颜色相同 */
+            color: #ffffff;
+            padding: 0em 0;
+            margin-top: 5em;
+        }
+
+        #footer h3 {
+            color: #ffffff;
+            margin-bottom: 1em;
+        }
+
+        #footer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        #footer ul li {
+            margin-bottom: 0.5em;
+        }
+        #footer p {
+            margin-bottom: 0em;
+        }
+
+        #footer .contact .label {
+            font-weight: bold;
+        }
+
+        #footer .col {
+            text-align: left;
+        }
+
+        /* 根据需要添加响应式布局设置 */
+    </style>
+    {% endblock %}
+
+</head>
+
+<body class="subpage">
+
+    <!-- Header -->
+    <header id="header">
+        <div class="inner">
+            <a href="/" class="logo">EasIFA</a>
+            <nav id="nav"><a href="/">Home</a>
+                <a href="/from_structure">From Structure</a>
+                <a href="/from_uniprot">From UniProt</a>
+            </nav>
+            <!-- <a href="#navPanel" class="navPanelToggle"><span class="fa fa-bars"></span></a> -->
+        </div>
+    </header><!-- Main -->
+
+    <div class="container">
+
+
+        <header class="align-center text-padding">
+            <h2><a style="color: #090F18;">Prediction Enzyme Active Site From Structure</a></h2>
+        </header>
+
+        <div class="section rounded-section column-center">
+            <p style="text-align: center; margin: 10px;">
+                <img src="../static/images/from_structures.svg"
+                    style="max-width: 100%; height: auto; display: block; margin: auto;">
+            </p>
+
+        </div>
+
+
+        <div class="section two-columns">
+
+            <div class="left-column"
+                style="box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);border-radius: 15px; background-color: #ffffff;">
+                <form id="form" method="post" action="/results_from_structure" enctype="multipart/form-data">
+                    <label class="form-label"><i class="bi-diamond-fill"></i> Input a reaction</label>
+                    <div class="form-group" style="display: flex; justify-content: center; align-items: center;">
+                        <!-- <label class="form-label" for="smiles">Draw a molecule</label> -->
+                        <div id="jsme_container" style="width:100%; height: 450px;border-radius: 20px"></div>
+                    </div>
+                    <br>
+
+                    <label class="form-label">SMILES: </label>
+
+                    <input type="text" name="drawn_smiles" class="form-input" id="smiles_container" value=""
+                        placeholder="SMILES">
+
+
+                    <footer>
+                        <div style="text-align: center;">
+                            <a id="mysubmit" class="button special" style="border-radius: 8px;margin: 40px;">Start
+                                Preidiction</a>
+                        </div>
+                    </footer>
+            </div>
+
+
+
+
+            <div class="right-column"
+                style="box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);border-radius: 15px; background-color: #ffffff;">
+                <label class="form-label"><i class="bi-diamond-fill"></i> Input an enzyme </label>
+                <div>
+                    <div id="enzyme_structure" style="border-radius: 15px">Enzyme Display</div>
+                    <br>
+                    <label class="form-label">PDB: </label>
+                    {{ form.file(class="button custom-file-input") }}
+                    </form>
+
+                </div>
+
+                <footer>
+                    <div style="text-align: center;">
+                        <a id="myload" class="button special" style="border-radius: 8px; margin: 40px;">Load Enzyme</a>
+                    </div>
+
+                </footer>
+            </div>
+
+        </div>
+        <div style="text-align: left; margin-top: 20px;">
+            <a href="/static/input_example/one_example.zip" class="btn" style="text-decoration: none; color: #333; padding: 6px 10px; border-radius: 6px; margin-left: 1.5%; font-size: 14px; background-color: #ffffff; border: 1px solid #dcdcdc; box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);">
+                Download An Example
+            </a>
+        </div>
+        
+        
+        
+    </div>
+
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="loading" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Caculating ...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="text-center m-5 px-5 py-5">
+                        <div class="spinner-border" style="width: 4rem; height: 4rem;" role="status">
+                            <span class="visually-hidden">Caculating...</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div> -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="static/assets/js/skel.min.js"></script>
+    <script src="static/assets/js/util.js"></script>
+    <script src="static/assets/js/main.js"></script>
+
+
+</body>
+
+<!-- 底部 Footer -->
+<footer id="footer">
+    <div class="inner">
+        <div class="flex flex-3">
+            <!-- 支持的第三方库 -->
+            <div class="col copyright">
+                <h3>Supported</h3>
+                <ul>
+                    <li>Pytorch</li>
+                    <li>Py3Dmol</li>
+                    <li>Flask</li>
+                    <li>Bootstrap</li>
+                    <li>RDKit</li>
+                </ul>
+            </div>
+            <!-- 访客检查插件 -->
+            <div class="col copyright" style="height: auto;">
+                <h3>Visitors</h3>
+                <script type="text/javascript"
+                    src="//rf.revolvermaps.com/0/0/4.js?i=5gwxbk8dt2f&amp;m=0&amp;h=125&amp;c=ff0000&amp;r=0"
+                    async="async"></script>
+            </div>
+            <!-- 联系方式 -->
+            <div class="col copyright">
+                <h3>Contact</h3>
+                <ul class="contact">
+
+                    <li><span class="label">Address:</span><br></li>
+                    <li>Innovation Institute for Artificial Intelligence in Medicine of Zhejiang University, College
+                            of Pharma-ceutical Sciences, Zhejiang University, Hangzhou, 310058, China.<br></li>
+
+                    <li><span class="label">E-mail:</span></li>
+                    <li>
+                        <p href="mailto:kimhsieh@zju.edu.cn">kimhsieh@zju.edu.cn</p>
+                        <p href="mailto:xjyao@mpu.edu.mo">xjyao@mpu.edu.mo</p>
+                        <p href="mailto:tingjunhou@zju.edu.cn">tingjunhou@zju.edu.cn</p>
+                    </li>
+
+
+
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+</html>
+
+{% block js %}
+<!-- Bootstrap core JS-->
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="text/javascript" language="javascript"
+    src="{{ url_for('static', filename='jsme/jsme.nocache.js') }}"></script>
+<script>
+    //this function will be called after the JavaScriptApplet code has been loaded.
+    function jsmeOnLoad() {
+        jsmeApplet = new JSApplet.JSME("jsme_container", "100%", "100%", {
+            "options": "oldlook,star,nocanonize,reaction"
+        });
+        jsmeApplet.setNotifyStructuralChangeJSfunction("show_smiles");
+    }
+    var patt = /\[([A-Za-z][a-z]?)H?\d*:\d+\]/g; //regexp pattern for numbered atom
+    function show_smiles() {
+        jsmeApplet.options("canonize");
+        smiles = jsmeApplet.smiles(); //atom that are colored are numbered
+        new_smiles = smiles.replace(patt, '<em>$1</em>');
+        document.getElementById("smiles_container").value = new_smiles
+    }
+</script>
+
+<script>
+
+    $(function () {
+
+        $('#nav_target_prediction').addClass("active");
+        $('.dropdown-toggle').dropdown()
+        $('.dropdown-item').click(function (e) {
+            $('#smiles_container').val($(this).text())
+            e.preventDefault();// prevent the default anchor functionality
+        });
+
+        $("#mysubmit").click(function () {
+            var smiles = $('#smiles_container').val();
+            console.info(smiles);
+            if (smiles.length > 0) {
+                var myModal = new bootstrap.Modal(document.getElementById('loading'))
+                myModal.show();
+                $("#form").submit();
+            } else {
+                $('#smiles_container').focus();
+            }
+        });
+
+        $('#myload').click(function (event) {
+            event.preventDefault();
+            var form_data = new FormData($('#form')[0]);
+            $.ajax({
+                type: 'POST',
+                url: '/enzyme_structure',
+                data: form_data,
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function (data) {
+                    console.log('Success!');
+                    $('#enzyme_structure').html(data);
+                },
+                beforeSend: function () {
+                    $('#enzyme_structure').html("");
+                },
+                error: function (xhr) { // if error occured
+                    alert(xhr.responseText);
+                },
+            });
+            // event.preventDefault();
+        });
+
+    });
+
+    $("td").each(function (i, el) {
+        var td = parseFloat($(el).text());
+        if (!isNaN(td)) {
+            $(el).text(td.toFixed(5));
+        }
+    });
+</script>
+
+
+{% endblock %}
