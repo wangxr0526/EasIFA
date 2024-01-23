@@ -391,7 +391,7 @@ def results_from_uniprot():
             rxn = row[2]
             enzyme_structure_path = row[3]
             if not os.path.exists(enzyme_structure_path):
-                enzyme_structure_path = os.path.join(app.unprot_mysql_parser.unprot_parser.alphafolddb_foder, f'AF-{uniprot_id}-F1-model_v4.pdb')
+                enzyme_structure_path = os.path.join(app.unprot_mysql_parser.unprot_parser.alphafolddb_folder, f'AF-{uniprot_id}-F1-model_v4.pdb')
                 cmd(app.unprot_mysql_parser.unprot_parser.download_alphafolddb_url_template.format(enzyme_structure_path, uniprot_id))
             
             

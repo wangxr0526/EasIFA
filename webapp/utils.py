@@ -149,15 +149,15 @@ def get_structure_html_and_active_data(
     return view.write_html(), active_data
 
 class UniProtParser:
-    def __init__(self, chebi_path, json_foder, rxn_folder, alphafolddb_foder):
+    def __init__(self, chebi_path, json_folder, rxn_folder, alphafolddb_folder):
         
         
-        self.json_foder = json_foder
-        os.makedirs(self.json_foder, exist_ok=True)
-        self.rxn_foder = rxn_folder
-        os.makedirs(self.rxn_foder, exist_ok=True)
-        self.alphafolddb_foder = alphafolddb_foder
-        os.makedirs(self.alphafolddb_foder, exist_ok=True)
+        self.json_folder = json_folder
+        os.makedirs(self.json_folder, exist_ok=True)
+        self.rxn_folder = rxn_folder
+        os.makedirs(self.rxn_folder, exist_ok=True)
+        self.alphafolddb_folder = alphafolddb_folder
+        os.makedirs(self.alphafolddb_folder, exist_ok=True)
        
         
         self.chebi_df = pd.read_csv(chebi_path)
@@ -190,7 +190,7 @@ class UniProtParser:
                 enzyme_lib_info = [ref['id'].split(':') for ref in rxn_comment['reactionCrossReferences'] if ref['database'] != 'ChEBI']
                 for enzyme_lib_name,  enzyme_lib_id in enzyme_lib_info:
                     if enzyme_lib_name == 'RHEA':
-                        rxn_fpath = os.path.join(self.rxn_foder, f'{str(int(enzyme_lib_id)+1)}.rxn')
+                        rxn_fpath = os.path.join(self.rxn_folder, f'{str(int(enzyme_lib_id)+1)}.rxn')
                         if not os.path.exists(rxn_fpath):
                             cmd(self.rhea_rxn_url_template.format(os.path.abspath(rxn_fpath), str(int(enzyme_lib_id)+1)))
                         try:
@@ -213,7 +213,7 @@ class UniProtParser:
     
     def parse_from_uniprotkb_query(self, uniprot_id):
         
-        uniprot_data_fpath = os.path.join(self.json_foder, f'{uniprot_id}.json')
+        uniprot_data_fpath = os.path.join(self.json_folder, f'{uniprot_id}.json')
         query_uniprotkb_cmd = self.query_uniprotkb_template.format(os.path.abspath(uniprot_data_fpath), uniprot_id)
         if not os.path.exists(uniprot_data_fpath):
             cmd(query_uniprotkb_cmd)
@@ -231,7 +231,7 @@ class UniProtParser:
         except:
             return None, 'No Alphafolddb Structure'
         aa_length = query_data['sequence']['length']
-        pdb_fpath = os.path.join(self.alphafolddb_foder, f'AF-{alphafolddb_id}-F1-model_v4.pdb')
+        pdb_fpath = os.path.join(self.alphafolddb_folder, f'AF-{alphafolddb_id}-F1-model_v4.pdb')
         if not os.path.exists(pdb_fpath):
             cmd(self.download_alphafolddb_url_template.format(os.path.abspath(pdb_fpath), alphafolddb_id))
         
@@ -361,7 +361,7 @@ class UniProtParserMysql:
     def __init__(self, mysql_config_path) -> None:
         self.mysql_config_path = mysql_config_path
         
-        self.unprot_parser = UniProtParser(chebi_path='../dataset/raw_dataset/chebi/structures.csv.gz', json_foder='test/uniprot_json', rxn_folder='test/rxn_folder', alphafolddb_foder='test/alphafolddb_folder')
+        self.unprot_parser = UniProtParser(chebi_path='../dataset/raw_dataset/chebi/structures.csv.gz', json_folder='test/uniprot_json', rxn_folder='test/rxn_folder', alphafolddb_folder='test/alphafolddb_folder')
         
         self.query_data_template = "SELECT * FROM qurey_data WHERE uniprot_id = %s"
         self.query_results_template = "SELECT * FROM predicted_results WHERE uniprot_id = %s"
@@ -497,7 +497,7 @@ class UniProtParserMysql:
 
 if __name__ == '__main__':
     
-    # unprot_parser = UniProtParser(chebi_path='../dataset/raw_dataset/chebi/structures.csv.gz', json_foder='test/uniprot_json', rxn_folder='test/rxn_folder', alphafolddb_foder='test/alphafolddb_folder')
+    # unprot_parser = UniProtParser(chebi_path='../dataset/raw_dataset/chebi/structures.csv.gz', json_folder='test/uniprot_json', rxn_folder='test/rxn_folder', alphafolddb_folder='test/alphafolddb_folder')
     # # query_results_df = unprot_parser.parse_from_uniprotkb_query('F6KCZ5')
     # query_results_df, msg = unprot_parser.parse_from_uniprotkb_query('Q05BL1')
     
