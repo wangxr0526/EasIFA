@@ -132,33 +132,6 @@ def cuda(obj, *args, **kwargs):
     raise TypeError("Can't transfer object type `%s`" % type(obj))
 
 
-def create_working_directory(cfg):
-    file_name = "working_dir.tmp"
-    world_size = comm.get_world_size()
-    if world_size > 1 and not dist.is_initialized():
-        comm.init_process_group("nccl", init_method="env://")
-
-    working_dir = os.path.join(os.path.expanduser(cfg.output_dir),
-                               cfg.task["class"], cfg.dataset["class"], cfg.task.model["class"],
-                               time.strftime("%Y-%m-%d-%H-%M-%S"))
-
-    # synchronize working directory
-    if comm.get_rank() == 0:
-        with open(file_name, "w") as fout:
-            fout.write(working_dir)
-        os.makedirs(working_dir)
-    comm.synchronize()
-    if comm.get_rank() != 0:
-        with open(file_name, "r") as fin:
-            working_dir = fin.read()
-    comm.synchronize()
-    if comm.get_rank() == 0:
-        os.remove(file_name)
-
-    os.chdir(working_dir)
-    return working_dir
-
-
 class Recorder:
     def __init__(self, path, keep_num_ckpt=10, validation_recorder_columns=['global step', 'evaluation loss', 'overlap score', 'false positive rate']) -> None:
         self.path = path
