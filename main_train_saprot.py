@@ -531,7 +531,7 @@ def main(args):
             verbose=1,
             lazy=True,
             nb_workers=args.propcess_core,
-            foldseek_bin_path="foldseek_bin/foldseek",
+            foldseek_bin_path=foldseek_bin_path,
         )
     else:
         dataset = EnzymeReactionSaProtDataset(
@@ -541,7 +541,7 @@ def main(args):
             verbose=1,
             lazy=True,
             nb_workers=args.propcess_core,
-            foldseek_bin_path="foldseek_bin/foldseek",
+            foldseek_bin_path=foldseek_bin_path,
         )
     train_set, valid_set, _ = dataset.split()
 
