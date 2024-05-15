@@ -26,3 +26,5 @@ script/*
 !script/inference_and_visualization_for_rfdiffusion_gen_bin.ipynb
 !script/inference_and_visualization.ipynb
 webapp/database.md
+foldseek_bin
+script/baseline_methods/sitemap_workspace

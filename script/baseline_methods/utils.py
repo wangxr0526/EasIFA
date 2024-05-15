@@ -2,7 +2,7 @@ from collections import defaultdict
 import pandas as pd
 import os
 import sys
-from sklearn.metrics import multilabel_confusion_matrix, recall_score
+from sklearn.metrics import matthews_corrcoef, multilabel_confusion_matrix, recall_score
 from tqdm.auto import tqdm
 import numpy as np
 
@@ -88,7 +88,10 @@ def calculate_score(pred_idx, gt_idx, num_residue):
     fpr = FP / (FP + TN)
     f1 = 2 * (prec * overlap_score) / (prec + overlap_score) if (
         prec + overlap_score) != 0 else 0
-    return acc, prec, spec, overlap_score, fpr, f1
+    # Calculate MCC
+    mcc_denom = (TP + FP) * (TP + FN) * (TN + FP) * (TN + FN)
+    mcc = ((TP * TN) - (FP * FN)) / (mcc_denom**0.5) if mcc_denom != 0 else 0
+    return acc, prec, spec, overlap_score, fpr, f1, mcc
 
 
 def get_fpr(cm, class_idx):
@@ -100,7 +103,7 @@ def calculate_metrics_multi_class(pred, gt, num_site_types):
     metrics = defaultdict(list)
     recall_list = recall_score(gt, pred, average=None, labels=range(num_site_types), zero_division=0)
     cm = multilabel_confusion_matrix(gt, pred, labels=range(num_site_types))
-    
+    metrics['multi-class mcc'].append(matthews_corrcoef(gt, pred))
     for class_idx in range(num_site_types):
         metrics[f'recall_cls_{class_idx}'].append(recall_list[class_idx])
         metrics[f'fpr_cls_{class_idx}'].append(get_fpr(cm, class_idx=class_idx))
@@ -119,6 +122,7 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
     overlap_scores_list = []
     false_positive_rates_list = []
     f1_scores_list = []
+    mcc_scores_list = []
     pbar = tqdm(test_dataset.iterrows(), total=len(test_dataset))
     for i, row in pbar:
         sequence_id = row['alphafolddb-id']
@@ -167,7 +171,7 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
             merge_predicted_results.update(pred)
         predicted_activate_sites.append(merge_predicted_results)
         if scoring:
-            acc, prec, spec, overlap_score, fpr, f1 = calculate_score(
+            acc, prec, spec, overlap_score, fpr, f1, mcc = calculate_score(
                 merge_predicted_results, active_site_gt, len(aa_sequence))
             accuracy_list.append(acc)
             precision_list.append(prec)
@@ -175,8 +179,9 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
             overlap_scores_list.append(overlap_score)
             false_positive_rates_list.append(fpr)
             f1_scores_list.append(f1)
+            mcc_scores_list.append(mcc)
             pbar.set_description(
-                'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}'
+                'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}'
                 .format(
                     sum(accuracy_list) / len(accuracy_list),
                     sum(precision_list) / len(precision_list),
@@ -184,11 +189,13 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
                     sum(overlap_scores_list) / len(overlap_scores_list),
                     sum(false_positive_rates_list) /
                     len(false_positive_rates_list),
-                    sum(f1_scores_list) / len(f1_scores_list)))
+                    sum(f1_scores_list) / len(f1_scores_list),
+                    sum(mcc_scores_list) / len(mcc_scores_list),
+                    ))
     if scoring:
         print(f'Get {len(overlap_scores_list)} results')
         print(
-            'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}'
+            'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}'
             .format(
                 sum(accuracy_list) / len(accuracy_list),
                 sum(precision_list) / len(precision_list),
@@ -196,7 +203,9 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
                 sum(overlap_scores_list) / len(overlap_scores_list),
                 sum(false_positive_rates_list) /
                 len(false_positive_rates_list),
-                sum(f1_scores_list) / len(f1_scores_list)))
+                sum(f1_scores_list) / len(f1_scores_list),
+                sum(mcc_scores_list) / len(mcc_scores_list),
+                ))
 
     return predicted_activate_sites, overlap_scores_list, false_positive_rates_list
 
@@ -214,6 +223,7 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
     overlap_scores_list = []
     false_positive_rates_list = []
     f1_scores_list = []
+    mcc_scores_list = []
     
     multicls_metrics_collection = defaultdict(list)
     
@@ -278,7 +288,7 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
         predicted_activate_sites.append(merge_predicted_results)
         predicted_activate_sites_vec.append(merge_predicted_active_site_types)
         if scoring:
-            acc, prec, spec, overlap_score, fpr, f1 = calculate_score(
+            acc, prec, spec, overlap_score, fpr, f1, mcc = calculate_score(
                 merge_predicted_results, active_site_gt, len(aa_sequence))
             
             
@@ -292,8 +302,9 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
             overlap_scores_list.append(overlap_score)
             false_positive_rates_list.append(fpr)
             f1_scores_list.append(f1)
+            mcc_scores_list.append(mcc)
             pbar.set_description(
-                'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}'
+                'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}'
                 .format(
                     sum(accuracy_list) / len(accuracy_list),
                     sum(precision_list) / len(precision_list),
@@ -301,13 +312,15 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
                     sum(overlap_scores_list) / len(overlap_scores_list),
                     sum(false_positive_rates_list) /
                     len(false_positive_rates_list),
-                    sum(f1_scores_list) / len(f1_scores_list)))
+                    sum(f1_scores_list) / len(f1_scores_list),
+                    sum(mcc_scores_list) / len(mcc_scores_list),
+                    ))
     if scoring:
             
-        multicls_cols = ['recall_cls_0', 'recall_cls_1', 'recall_cls_2', 'recall_cls_3', 'fpr_cls_0', 'fpr_cls_1', 'fpr_cls_2', 'fpr_cls_3']
+        multicls_cols = ['recall_cls_0', 'recall_cls_1', 'recall_cls_2', 'recall_cls_3', 'fpr_cls_0', 'fpr_cls_1', 'fpr_cls_2', 'fpr_cls_3', 'multi-class mcc']
         print(f'Get {len(overlap_scores_list)} results')
         print(
-            'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}'
+            'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}'
             .format(
                 sum(accuracy_list) / len(accuracy_list),
                 sum(precision_list) / len(precision_list),
@@ -315,7 +328,9 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
                 sum(overlap_scores_list) / len(overlap_scores_list),
                 sum(false_positive_rates_list) /
                 len(false_positive_rates_list),
-                sum(f1_scores_list) / len(f1_scores_list)))
+                sum(f1_scores_list) / len(f1_scores_list),
+                sum(mcc_scores_list) / len(mcc_scores_list),
+                ))
         
         print('Multiclassfication Metrics:')
         multiclass_report_str = ['{}: {:.4f}'.format(key, sum(multicls_metrics_collection[key])/len(multicls_metrics_collection[key])) for key in  multicls_cols]
