@@ -1046,7 +1046,7 @@ class EnzymeReactionSaProtDataset(EnzymeReactionDataset):
             )
         except:
             return {}
-        assert protein.num_residue.item() == len(active_site)
+        assert protein.num_residue.item() == len(active_site), f'{proprecessed_pdb_file}'
         item["targets"] = active_site
 
         saprot_combined_seq = self.calculate_saprot_parsed_seqs(
