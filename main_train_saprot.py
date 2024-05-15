@@ -595,7 +595,7 @@ def main(args):
     if debug:
         model_save_path = os.path.join(args.checkpoint_path, "debug")
 
-    model = DDP(model, find_unused_parameters=False, device_ids=[device_id])
+    model = DDP(model, find_unused_parameters=True, device_ids=[device_id])
 
     if args.task_type == "ablation-experiment-2":
         optimizer = AdamW(
