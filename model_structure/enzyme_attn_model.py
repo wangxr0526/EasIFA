@@ -1,6 +1,7 @@
-'''
+"""
 IEConvLayer, GeometricRelationalGraphConv, GearNetIEConv adapted from https://github.com/DeepGraphLearning/GearNet
-'''
+"""
+
 from collections.abc import Sequence
 import os
 
@@ -11,21 +12,33 @@ from torch_scatter import scatter_add
 
 from torchdrug import core, layers, utils, data
 from torchdrug.layers import functional
+
 # from torchdrug.models.esm import EvolutionaryScaleModeling as ESM
 import sys
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from model_structure.esm_layer import EvolutionaryScaleModeling as ESM
 from model_structure.saprod_layer import EvolutionaryScaleModelingSaProt as SaProtESM
-from torchdrug.models.gearnet import GeometryAwareRelationalGraphNeuralNetwork as GearNet
-
-
+from torchdrug.models.gearnet import (
+    GeometryAwareRelationalGraphNeuralNetwork as GearNet,
+)
 
 
 class IEConvLayer(nn.Module):
     eps = 1e-6
 
-    def __init__(self, input_dim, hidden_dim, output_dim, edge_input_dim, kernel_hidden_dim=32,
-                dropout=0.05, dropout_before_conv=0.2, activation="relu", aggregate_func="sum"):
+    def __init__(
+        self,
+        input_dim,
+        hidden_dim,
+        output_dim,
+        edge_input_dim,
+        kernel_hidden_dim=32,
+        dropout=0.05,
+        dropout_before_conv=0.2,
+        activation="relu",
+        aggregate_func="sum",
+    ):
         super(IEConvLayer, self).__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -35,7 +48,9 @@ class IEConvLayer(nn.Module):
         self.aggregate_func = aggregate_func
 
         self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.kernel = layers.MLP(edge_input_dim, [kernel_hidden_dim, (hidden_dim + 1) * hidden_dim])
+        self.kernel = layers.MLP(
+            edge_input_dim, [kernel_hidden_dim, (hidden_dim + 1) * hidden_dim]
+        )
         self.linear2 = nn.Linear(hidden_dim, output_dim)
 
         self.input_batch_norm = nn.BatchNorm1d(input_dim)
@@ -57,16 +72,20 @@ class IEConvLayer(nn.Module):
         message = self.message_batch_norm(message)
         message = self.dropout_before_conv(self.activation(message))
         kernel = self.kernel(edge_input).view(-1, self.hidden_dim + 1, self.hidden_dim)
-        message = torch.einsum('ijk, ik->ij', kernel[:, 1:, :], message) + kernel[:, 0, :]
+        message = (
+            torch.einsum("ijk, ik->ij", kernel[:, 1:, :], message) + kernel[:, 0, :]
+        )
 
         return message
-    
+
     def aggregate(self, graph, message):
         node_in, node_out = graph.edge_list.t()[:2]
         edge_weight = graph.edge_weight.unsqueeze(-1)
-        
+
         if self.aggregate_func == "sum":
-            update = scatter_add(message * edge_weight, node_out, dim=0, dim_size=graph.num_node) 
+            update = scatter_add(
+                message * edge_weight, node_out, dim=0, dim_size=graph.num_node
+            )
         else:
             raise ValueError("Unknown aggregation function `%s`" % self.aggregate_func)
         return update
@@ -78,21 +97,28 @@ class IEConvLayer(nn.Module):
     def forward(self, graph, input, edge_input):
         input = self.input_batch_norm(input)
         layer_input = self.dropout(self.activation(input))
-        
+
         message = self.message(graph, layer_input, edge_input)
         update = self.aggregate(graph, message)
         update = self.dropout(self.activation(self.update_batch_norm(update)))
-        
+
         output = self.combine(input, update)
         output = self.output_batch_norm(output)
         return output
-    
+
 
 class GeometricRelationalGraphConv(nn.Module):
     eps = 1e-6
 
-    def __init__(self, input_dim, output_dim, num_relation, edge_input_dim=None, 
-                batch_norm=False, activation="relu"):
+    def __init__(
+        self,
+        input_dim,
+        output_dim,
+        num_relation,
+        edge_input_dim=None,
+        batch_norm=False,
+        activation="relu",
+    ):
         super(GeometricRelationalGraphConv, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -123,17 +149,22 @@ class GeometricRelationalGraphConv(nn.Module):
             assert edge_input.shape == message.shape
             message += edge_input
         return message
-    
+
     def aggregate(self, graph, message):
         assert graph.num_relation == self.num_relation
 
         node_out = graph.edge_list[:, 1] * self.num_relation + graph.edge_list[:, 2]
         edge_weight = graph.edge_weight.unsqueeze(-1)
-        update = scatter_add(message * edge_weight, node_out, dim=0, dim_size=graph.num_node * self.num_relation)
+        update = scatter_add(
+            message * edge_weight,
+            node_out,
+            dim=0,
+            dim_size=graph.num_node * self.num_relation,
+        )
         update = update.view(graph.num_node, self.num_relation * self.input_dim)
 
         return update
-    
+
     def combine(self, input, update):
         output = self.linear(update)
         if self.batch_norm:
@@ -141,7 +172,7 @@ class GeometricRelationalGraphConv(nn.Module):
         if self.activation:
             output = self.activation(output)
         return output
-    
+
     def forward(self, graph, input, edge_input=None):
         message = self.message(graph, input, edge_input)
         update = self.aggregate(graph, message)
@@ -149,12 +180,25 @@ class GeometricRelationalGraphConv(nn.Module):
         return output
 
 
-
 class GearNetIEConv(nn.Module, core.Configurable):
 
-    def __init__(self, input_dim, embedding_dim, hidden_dims, num_relation, edge_input_dim=None,
-                 batch_norm=False, activation="relu", concat_hidden=False, short_cut=True, 
-                 readout="sum", dropout=0, num_angle_bin=None, layer_norm=False, use_ieconv=False):
+    def __init__(
+        self,
+        input_dim,
+        embedding_dim,
+        hidden_dims,
+        num_relation,
+        edge_input_dim=None,
+        batch_norm=False,
+        activation="relu",
+        concat_hidden=False,
+        short_cut=True,
+        readout="sum",
+        dropout=0,
+        num_angle_bin=None,
+        layer_norm=False,
+        use_ieconv=False,
+    ):
         super(GearNetIEConv, self).__init__()
 
         if not isinstance(hidden_dims, Sequence):
@@ -162,7 +206,9 @@ class GearNetIEConv(nn.Module, core.Configurable):
         self.input_dim = input_dim
         self.embedding_dim = embedding_dim
         self.output_dim = sum(hidden_dims) if concat_hidden else hidden_dims[-1]
-        self.dims = [embedding_dim if embedding_dim > 0 else input_dim] + list(hidden_dims)
+        self.dims = [embedding_dim if embedding_dim > 0 else input_dim] + list(
+            hidden_dims
+        )
         self.edge_dims = [edge_input_dim] + self.dims[:-1]
         self.num_relation = num_relation
         self.concat_hidden = concat_hidden
@@ -171,7 +217,7 @@ class GearNetIEConv(nn.Module, core.Configurable):
         self.short_cut = short_cut
         self.concat_hidden = concat_hidden
         self.layer_norm = layer_norm
-        self.use_ieconv = use_ieconv  
+        self.use_ieconv = use_ieconv
 
         if embedding_dim > 0:
             self.linear = nn.Linear(input_dim, embedding_dim)
@@ -181,17 +227,40 @@ class GearNetIEConv(nn.Module, core.Configurable):
         self.ieconvs = nn.ModuleList()
         for i in range(len(self.dims) - 1):
             # note that these layers are from gearnet.layer instead of torchdrug.layers
-            self.layers.append(GeometricRelationalGraphConv(self.dims[i], self.dims[i + 1], num_relation,
-                                                                   None, batch_norm, activation))
+            self.layers.append(
+                GeometricRelationalGraphConv(
+                    self.dims[i],
+                    self.dims[i + 1],
+                    num_relation,
+                    None,
+                    batch_norm,
+                    activation,
+                )
+            )
             if use_ieconv:
-                self.ieconvs.append(IEConvLayer(self.dims[i], self.dims[i] // 4, 
-                                    self.dims[i+1], edge_input_dim=14, kernel_hidden_dim=32))
+                self.ieconvs.append(
+                    IEConvLayer(
+                        self.dims[i],
+                        self.dims[i] // 4,
+                        self.dims[i + 1],
+                        edge_input_dim=14,
+                        kernel_hidden_dim=32,
+                    )
+                )
         if num_angle_bin:
             self.spatial_line_graph = layers.SpatialLineGraph(num_angle_bin)
             self.edge_layers = nn.ModuleList()
             for i in range(len(self.edge_dims) - 1):
-                self.edge_layers.append(GeometricRelationalGraphConv(
-                    self.edge_dims[i], self.edge_dims[i + 1], num_angle_bin, None, batch_norm, activation))
+                self.edge_layers.append(
+                    GeometricRelationalGraphConv(
+                        self.edge_dims[i],
+                        self.edge_dims[i + 1],
+                        num_angle_bin,
+                        None,
+                        batch_norm,
+                        activation,
+                    )
+                )
 
         if layer_norm:
             self.layer_norms = nn.ModuleList()
@@ -222,15 +291,19 @@ class GearNetIEConv(nn.Module, core.Configurable):
 
         node_in, node_out = graph.edge_list.t()[:2]
         t = graph.node_position[node_out] - graph.node_position[node_in]
-        t = torch.einsum('ijk, ij->ik', local_frame[node_in], t)
+        t = torch.einsum("ijk, ij->ik", local_frame[node_in], t)
         r = torch.sum(local_frame[node_in] * local_frame[node_out], dim=1)
-        delta = torch.abs(graph.atom2residue[node_in] - graph.atom2residue[node_out]).float() / 6
+        delta = (
+            torch.abs(
+                graph.atom2residue[node_in] - graph.atom2residue[node_out]
+            ).float()
+            / 6
+        )
         delta = delta.unsqueeze(-1)
 
-        return torch.cat([
-            t, r, delta, 
-            1 - 2 * t.abs(), 1 - 2 * r.abs(), 1 - 2 * delta.abs()
-        ], dim=-1)
+        return torch.cat(
+            [t, r, delta, 1 - 2 * t.abs(), 1 - 2 * r.abs(), 1 - 2 * delta.abs()], dim=-1
+        )
 
     def forward(self, graph, input, all_loss=None, metric=None):
         hiddens = []
@@ -252,7 +325,9 @@ class GearNetIEConv(nn.Module, core.Configurable):
             hidden = self.layers[i](graph, layer_input, edge_hidden)
             # ieconv layer
             if self.use_ieconv:
-                hidden = hidden + self.ieconvs[i](graph, layer_input, ieconv_edge_feature)
+                hidden = hidden + self.ieconvs[i](
+                    graph, layer_input, ieconv_edge_feature
+                )
             hidden = self.dropout(hidden)
             if self.short_cut and hidden.shape == layer_input.shape:
                 hidden = hidden + layer_input
@@ -267,73 +342,116 @@ class GearNetIEConv(nn.Module, core.Configurable):
             node_feature = hiddens[-1]
         graph_feature = self.readout(graph, node_feature)
 
-        return {
-            "graph_feature": graph_feature,
-            "node_feature": node_feature
-        }
-    
-
+        return {"graph_feature": graph_feature, "node_feature": node_feature}
 
 
 class EnzymeFusionNetwork(nn.Module, core.Configurable):
 
-    def __init__(self, sequence_model, structure_model):
+    def __init__(self, sequence_model, structure_model=None):
         super(EnzymeFusionNetwork, self).__init__()
         self.sequence_model = sequence_model
         self.structure_model = structure_model
-        self.output_dim = sequence_model.output_dim + structure_model.output_dim
+        if self.structure_model is None:
+            self.output_dim = sequence_model.output_dim
+        else:
+            self.output_dim = sequence_model.output_dim + structure_model.output_dim
 
     def forward(self, graph, input, all_loss=None, metric=None):
         output1 = self.sequence_model(graph, input, all_loss, metric)
         node_output1 = output1.get("node_feature", output1.get("residue_feature"))
+        if self.structure_model is None:
+            return {
+                "graph_feature": output1["graph_feature"],
+                "node_feature": node_output1,
+            }
+
         output2 = self.structure_model(graph, node_output1, all_loss, metric)
         node_output2 = output2.get("node_feature", output2.get("residue_feature"))
-        
-        node_feature = torch.cat([node_output1, node_output2], dim=-1)
-        graph_feature = torch.cat([
-            output1['graph_feature'], 
-            output2['graph_feature']
-        ], dim=-1)
 
-        return {
-            "graph_feature": graph_feature,
-            "node_feature": node_feature
-        }
-    
+        node_feature = torch.cat([node_output1, node_output2], dim=-1)
+        graph_feature = torch.cat(
+            [output1["graph_feature"], output2["graph_feature"]], dim=-1
+        )
+
+        return {"graph_feature": graph_feature, "node_feature": node_feature}
+
+
 class EnzymeFusionNetworkWrapper(nn.Module):
     def __init__(self, use_graph_construction_model=True) -> None:
         super(EnzymeFusionNetworkWrapper, self).__init__()
 
-        sequence_model = ESM(path='~/.cache/torch/hub/checkpoints', model='ESM-2-650M')
+        sequence_model = ESM(path="~/.cache/torch/hub/checkpoints", model="ESM-2-650M")
 
         structure_model = GearNet(
-        input_dim=1280,
-        hidden_dims=[512, 512, 512, 512, 512, 512],
-        batch_norm=True,
-        short_cut=True,
-        readout='sum',
-        num_relation=7
-         )
-        
-        fusion_model = EnzymeFusionNetwork(sequence_model=sequence_model, structure_model=structure_model)
+            input_dim=1280,
+            hidden_dims=[512, 512, 512, 512, 512, 512],
+            batch_norm=True,
+            short_cut=True,
+            readout="sum",
+            num_relation=7,
+        )
 
+        fusion_model = EnzymeFusionNetwork(
+            sequence_model=sequence_model, structure_model=structure_model
+        )
 
         self.model = fusion_model
 
-        self.graph_construction_model = layers.geometry.graph.GraphConstruction(
-            node_layers = [layers.geometry.AlphaCarbonNode()],
-            edge_layers = [
-                layers.geometry.SequentialEdge(max_distance=2),
-                layers.geometry.SpatialEdge(radius=10, min_distance=5),
-                layers.geometry.KNNEdge(k=10, max_distance=0)
-            ]
-        ) if use_graph_construction_model else None
+        self.graph_construction_model = (
+            layers.geometry.graph.GraphConstruction(
+                node_layers=[layers.geometry.AlphaCarbonNode()],
+                edge_layers=[
+                    layers.geometry.SequentialEdge(max_distance=2),
+                    layers.geometry.SpatialEdge(radius=10, min_distance=5),
+                    layers.geometry.KNNEdge(k=10, max_distance=0),
+                ],
+            )
+            if use_graph_construction_model
+            else None
+        )
 
         self.output_dim = fusion_model.output_dim
 
     def forward(self, batch):
 
-        graph = batch['protein_graph']
+        graph = batch["protein_graph"]
+        if self.graph_construction_model:
+            graph = self.graph_construction_model(graph)
+        output = self.model(graph, graph.node_feature.float())
+        return output
+    
+class EnzymeESMWrapper(nn.Module):
+    def __init__(self, use_graph_construction_model=True) -> None:
+        super(EnzymeESMWrapper, self).__init__()
+
+        sequence_model = ESM(path="~/.cache/torch/hub/checkpoints", model="ESM-2-650M")
+
+
+
+        fusion_model = EnzymeFusionNetwork(
+            sequence_model=sequence_model, structure_model=None
+        )
+
+        self.model = fusion_model
+
+        self.graph_construction_model = (
+            layers.geometry.graph.GraphConstruction(
+                node_layers=[layers.geometry.AlphaCarbonNode()],
+                edge_layers=[
+                    layers.geometry.SequentialEdge(max_distance=2),
+                    layers.geometry.SpatialEdge(radius=10, min_distance=5),
+                    layers.geometry.KNNEdge(k=10, max_distance=0),
+                ],
+            )
+            if use_graph_construction_model
+            else None
+        )
+
+        self.output_dim = fusion_model.output_dim
+
+    def forward(self, batch):
+
+        graph = batch["protein_graph"]
         if self.graph_construction_model:
             graph = self.graph_construction_model(graph)
         output = self.model(graph, graph.node_feature.float())
@@ -342,111 +460,116 @@ class EnzymeFusionNetworkWrapper(nn.Module):
 class EnzymeSaProtFusionNetworkWrapper(nn.Module):
     def __init__(self, use_graph_construction_model=True) -> None:
         super(EnzymeSaProtFusionNetworkWrapper, self).__init__()
-        saprot_state_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../checkpoints/SaProt_650M_AF2'))
+        saprot_state_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../checkpoints/SaProt_650M_AF2")
+        )
         assert os.path.exists(saprot_state_path)
-        sequence_model = SaProtESM(path=saprot_state_path, model='SaProt_650M_AF2')
+        sequence_model = SaProtESM(path=saprot_state_path, model="SaProt_650M_AF2")
 
         structure_model = GearNet(
-        input_dim=1280,
-        hidden_dims=[512, 512, 512, 512, 512, 512],
-        batch_norm=True,
-        short_cut=True,
-        readout='sum',
-        num_relation=7
-         )
-        
-        fusion_model = EnzymeFusionNetwork(sequence_model=sequence_model, structure_model=structure_model)
+            input_dim=1280,
+            hidden_dims=[512, 512, 512, 512, 512, 512],
+            batch_norm=True,
+            short_cut=True,
+            readout="sum",
+            num_relation=7,
+        )
 
+        fusion_model = EnzymeFusionNetwork(
+            sequence_model=sequence_model, structure_model=structure_model
+        )
 
         self.model = fusion_model
 
-        self.graph_construction_model = layers.geometry.graph.GraphConstruction(
-            node_layers = [layers.geometry.AlphaCarbonNode()],
-            edge_layers = [
-                layers.geometry.SequentialEdge(max_distance=2),
-                layers.geometry.SpatialEdge(radius=10, min_distance=5),
-                layers.geometry.KNNEdge(k=10, max_distance=0)
-            ]
-        ) if use_graph_construction_model else None
+        self.graph_construction_model = (
+            layers.geometry.graph.GraphConstruction(
+                node_layers=[layers.geometry.AlphaCarbonNode()],
+                edge_layers=[
+                    layers.geometry.SequentialEdge(max_distance=2),
+                    layers.geometry.SpatialEdge(radius=10, min_distance=5),
+                    layers.geometry.KNNEdge(k=10, max_distance=0),
+                ],
+            )
+            if use_graph_construction_model
+            else None
+        )
 
         self.output_dim = fusion_model.output_dim
 
     def forward(self, batch):
 
-        graph = batch['protein_graph']
+        graph = batch["protein_graph"]
         if self.graph_construction_model:
             graph = self.graph_construction_model(graph)
-        output = self.model(graph, batch['saprot_batch_tokens'])
+        output = self.model(graph, batch["saprot_batch_tokens"])
         return output
 
 
-
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
     from tqdm import tqdm
-    sys.path.append(os.path.join(os.path.abspath(os.getcwd()),'..'))
-    from data_loaders.enzyme_dataloader import EnzymeDataset, enzyme_dataset_graph_collate
-    from data_loaders.enzyme_rxn_dataloader import EnzymeReactionSiteTypeSaProtDataset, EnzymeRxnSaprotCollate
+
+    sys.path.append(os.path.join(os.path.abspath(os.getcwd()), ".."))
+    from data_loaders.enzyme_dataloader import (
+        EnzymeDataset,
+        enzyme_dataset_graph_collate,
+    )
+    from data_loaders.enzyme_rxn_dataloader import (
+        EnzymeReactionSiteTypeSaProtDataset,
+        EnzymeRxnSaprotCollate,
+    )
     from torch.utils import data as torch_data
     from common.utils import cuda
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # dataset = EnzymeDataset(
-    #     path=
-    #     'dataset/ec_site_dataset/uniprot_ecreact_merge_dataset_limit_10000',
-    #     save_precessed=False,
-    #     debug=True,
-    #     verbose=1,
-    #     lazy=True,
-    #     nb_workers=12)
-    
-    # train_set, valid_set, test_set = dataset.split()
-
-    # enzyme_fusion_model = EnzymeFusionNetworkWrapper(use_graph_construction_model=True)
-    # enzyme_fusion_model.to(device)
-
-
-    # train_loader = torch_data.DataLoader(
-    #     train_set,
-    #     batch_size=2,
-    #     collate_fn=enzyme_dataset_graph_collate,
-    #     num_workers=4)
-    
-    # for batch_data in tqdm(train_loader):
-    #     if device.type == "cuda":
-    #         batch_data = utils.cuda(batch_data, device=device)
-    #     enzyme_fusion_model(batch_data)
-
-
-    dataset = EnzymeReactionSiteTypeSaProtDataset(
-        path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
+    dataset = EnzymeDataset(
+        path="dataset/ec_site_dataset/uniprot_ecreact_merge_dataset_limit_10000",
         save_precessed=False,
-        debug=False,
+        debug=True,
         verbose=1,
         lazy=True,
         nb_workers=12,
-        foldseek_bin_path="../foldseek_bin/foldseek",
     )
-    
+
     train_set, valid_set, test_set = dataset.split()
 
-    enzyme_fusion_model = EnzymeSaProtFusionNetworkWrapper(use_graph_construction_model=True)
+    # enzyme_fusion_model = EnzymeFusionNetworkWrapper(use_graph_construction_model=True)
+    enzyme_fusion_model = EnzymeESMWrapper(use_graph_construction_model=True)
     enzyme_fusion_model.to(device)
 
-    enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
     train_loader = torch_data.DataLoader(
-        train_set,
-        batch_size=2,
-        collate_fn=enzyme_rxn_saprot_collate_extract,
-        num_workers=4)
-    
+        train_set, batch_size=2, collate_fn=enzyme_dataset_graph_collate, num_workers=4
+    )
+
     for batch_data in tqdm(train_loader):
         if device.type == "cuda":
-            batch_data = cuda(batch_data, device=device)
+            batch_data = utils.cuda(batch_data, device=device)
         enzyme_fusion_model(batch_data)
-    
-    
+
+    # dataset = EnzymeReactionSiteTypeSaProtDataset(
+    #     path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
+    #     save_precessed=False,
+    #     debug=False,
+    #     verbose=1,
+    #     lazy=True,
+    #     nb_workers=12,
+    #     foldseek_bin_path="../foldseek_bin/foldseek",
+    # )
+
+    # train_set, valid_set, test_set = dataset.split()
+
+    # enzyme_fusion_model = EnzymeSaProtFusionNetworkWrapper(use_graph_construction_model=True)
+    # enzyme_fusion_model.to(device)
+
+    # enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
+    # train_loader = torch_data.DataLoader(
+    #     train_set,
+    #     batch_size=2,
+    #     collate_fn=enzyme_rxn_saprot_collate_extract,
+    #     num_workers=4)
+
+    # for batch_data in tqdm(train_loader):
+    #     if device.type == "cuda":
+    #         batch_data = cuda(batch_data, device=device)
+    #     enzyme_fusion_model(batch_data)

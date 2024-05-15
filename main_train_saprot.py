@@ -22,7 +22,7 @@ import yaml
 from collections import defaultdict
 from model_structure.enzyme_site_model import (
     EnzymeActiveSiteClsModel,
-    EnzymeActiveSiteESMModel,
+    EnzymeActiveSiteESMGearNetModel,
     EnzymeActiveSiteModel,
 )
 from common.utils import (
@@ -566,7 +566,7 @@ def main(args):
             use_saprot_esm=True,
         )
     elif args.task_type == "ablation-experiment-1":
-        model = EnzymeActiveSiteESMModel(bridge_hidden_dim=args.bridge_hidden_dim)
+        model = EnzymeActiveSiteESMGearNetModel(bridge_hidden_dim=args.bridge_hidden_dim)
 
     elif args.task_type == "ablation-experiment-2":
         model = EnzymeActiveSiteModel(

@@ -6,7 +6,7 @@ import torch
 from torch.utils import data as torch_data
 from common.utils import calculate_scores_vbin_test, calculate_scores_vmulti_test, convert_fn, cuda, read_model_state
 from data_loaders.enzyme_rxn_dataloader import EnzymeReactionDataset, EnzymeReactionSiteTypeDataset,  enzyme_rxn_collate_extract
-from model_structure.enzyme_site_model import EnzymeActiveSiteClsModel, EnzymeActiveSiteESMModel, EnzymeActiveSiteModel
+from model_structure.enzyme_site_model import EnzymeActiveSiteClsModel, EnzymeActiveSiteESMGearNetModel, EnzymeActiveSiteModel
 from main_train import is_valid_outputs
 
 
@@ -49,7 +49,7 @@ def main(args):
             rxn_model_path=args.pretrained_rxn_attn_model_path, num_active_site_type=dataset.num_active_site_type
             )
     elif args.task_type == 'ablation-experiment-1':
-        model = EnzymeActiveSiteESMModel(
+        model = EnzymeActiveSiteESMGearNetModel(
             bridge_hidden_dim=args.bridge_hidden_dim
         )
     
