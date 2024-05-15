@@ -2,7 +2,7 @@ from collections import OrderedDict, defaultdict
 import os
 import random
 import numpy as np
-from sklearn.metrics import multilabel_confusion_matrix, recall_score
+from sklearn.metrics import matthews_corrcoef, multilabel_confusion_matrix, recall_score
 import torch
 from torch import nn as nn
 import yaml
@@ -296,7 +296,10 @@ def calculate_score_vbin_test(pred_idx, gt_idx, num_residue):
     overlap_score = TP / len(gt_idx) if len(gt_idx) != 0 else 0  # recall
     fpr = FP / (FP + TN)
     f1 = 2 * (prec * overlap_score) / (prec + overlap_score) if  (prec + overlap_score) !=0 else 0
-    return acc, prec, spec, overlap_score, fpr, f1
+    # Calculate MCC
+    mcc_denom = (TP + FP) * (TP + FN) * (TN + FP) * (TN + FN)
+    mcc = ((TP * TN) - (FP * FN)) / (mcc_denom**0.5) if mcc_denom != 0 else 0
+    return acc, prec, spec, overlap_score, fpr, f1, mcc
 
 
 def calculate_scores_vbin_test(preds, gts, num_residues):
@@ -306,21 +309,23 @@ def calculate_scores_vbin_test(preds, gts, num_residues):
     fpr_list = []
     f1_scores = []
     specificity = []
+    mcc_scores = []
     preds = torch.split(preds, num_residues)
     gts = torch.split(gts, num_residues)
 
     for pred, gt, num_residue in zip(preds, gts, num_residues):
         pred_idx = set(torch.argwhere(pred == 1).view(-1).tolist())
         gt_idx = set(torch.argwhere(gt == 1).view(-1).tolist())
-        acc, prec, spec, overlap_score, fpr, f1 = calculate_score_vbin_test(pred_idx, gt_idx, num_residue)
+        acc, prec, spec, overlap_score, fpr, f1, mcc = calculate_score_vbin_test(pred_idx, gt_idx, num_residue)
         accuracy.append(acc)
         precision.append(prec)
         overlap_scores.append(overlap_score)
         fpr_list.append(fpr)
         specificity.append(spec)
         f1_scores.append(f1)
+        mcc_scores.append(mcc)
 
-    return accuracy, precision, specificity, overlap_scores, fpr_list, f1_scores
+    return accuracy, precision, specificity, overlap_scores, fpr_list, f1_scores, mcc_scores
 
 def get_fpr(cm, class_idx):
     TN, FP, FN, TP = cm[class_idx].ravel()
@@ -333,7 +338,7 @@ def calculate_metrics_multi_class(pred, gt, num_site_types):
     metrics = defaultdict(list)
     recall_list = recall_score(gt, pred, average=None, labels=range(num_site_types), zero_division=0)
     cm = multilabel_confusion_matrix(gt, pred, labels=range(num_site_types))
-    
+    metrics['multi-class mcc'].append(matthews_corrcoef(gt, pred))
     for class_idx in range(num_site_types):
         metrics[f'recall_cls_{class_idx}'].append(recall_list[class_idx])
         metrics[f'fpr_cls_{class_idx}'].append(get_fpr(cm, class_idx=class_idx))
@@ -352,7 +357,7 @@ def calculate_scores_vmulti_test(preds, gts, num_residues, num_site_types):
     for pred, gt, num_residue in zip(preds, gts, num_residues):
         pred_idx = set(torch.argwhere(bin_preds == 1).view(-1).tolist())
         gt_idx = set(torch.argwhere(bin_gts == 1).view(-1).tolist())
-        acc, prec, spec, overlap_score, fpr, f1 = calculate_score_vbin_test(pred_idx, gt_idx, num_residue)
+        acc, prec, spec, overlap_score, fpr, f1, mcc = calculate_score_vbin_test(pred_idx, gt_idx, num_residue)
         
         metrics['overlap_scores'].append(overlap_score)
         metrics['false_positive_rates'].append(fpr)
@@ -360,6 +365,7 @@ def calculate_scores_vmulti_test(preds, gts, num_residues, num_site_types):
         metrics['precision'].append(prec)
         metrics['specificity'].append(spec)
         metrics['f1_scores'].append(f1)
+        metrics['mcc_scores'].append(mcc)
         
         metrics_multi_class = calculate_metrics_multi_class(pred.tolist(), gt.tolist(), num_site_types=num_site_types)
         for key in metrics_multi_class:
