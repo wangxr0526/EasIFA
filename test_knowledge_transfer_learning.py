@@ -57,6 +57,7 @@ def main(args):
     overlap_scores_list = []
     false_positive_rates_list = []
     f1_scores_list = []
+    mcc_scores_list = []
     
    
 
@@ -85,7 +86,7 @@ def main(args):
             node_cnt += targets.size(0)
 
 
-            accuracy, precision, specificity, overlap_score, fpr, f1_scores = calculate_scores_vbin_test(
+            accuracy, precision, specificity, overlap_score, fpr, f1_scores, mcc_scores = calculate_scores_vbin_test(
                 pred, targets, batch['protein_graph'].num_residues.tolist()
             )
             accuracy_list += accuracy
@@ -94,26 +95,29 @@ def main(args):
             overlap_scores_list += overlap_score
             false_positive_rates_list += fpr
             f1_scores_list += f1_scores
+            mcc_scores_list += mcc_scores
 
             pbar.set_description(
-                'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}'.format(
+                'Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}'.format(
                     sum(accuracy_list) / len(accuracy_list),
                     sum(precision_list) / len(precision_list),
                     sum(specificity_list) / len(specificity_list),
                     sum(overlap_scores_list) / len(overlap_scores_list),
                     sum(false_positive_rates_list) / len(false_positive_rates_list),
-                    sum(f1_scores_list) / len(f1_scores_list)
+                    sum(f1_scores_list) / len(f1_scores_list),
+                    sum(mcc_scores_list) / len(mcc_scores_list),
                     )
                 )
 
     print(f'Get {len(overlap_scores_list)} results')
-    print('Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}'.format(
+    print('Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}'.format(
                     sum(accuracy_list) / len(accuracy_list),
                     sum(precision_list) / len(precision_list),
                     sum(specificity_list) / len(specificity_list),
                     sum(overlap_scores_list) / len(overlap_scores_list),
                     sum(false_positive_rates_list) / len(false_positive_rates_list),
-                    sum(f1_scores_list) / len(f1_scores_list)
+                    sum(f1_scores_list) / len(f1_scores_list),
+                    sum(mcc_scores_list) / len(mcc_scores_list),
                     ))
 
         

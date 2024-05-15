@@ -13,8 +13,9 @@ from torchdrug import core, layers, utils, data
 from torchdrug.layers import functional
 # from torchdrug.models.esm import EvolutionaryScaleModeling as ESM
 import sys
-sys.path.append(os.path.join(os.path.abspath(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 from model_structure.esm_layer import EvolutionaryScaleModeling as ESM
+from model_structure.saprod_layer import EvolutionaryScaleModelingSaProt as SaProtESM
 from torchdrug.models.gearnet import GeometryAwareRelationalGraphNeuralNetwork as GearNet
 
 
@@ -338,6 +339,47 @@ class EnzymeFusionNetworkWrapper(nn.Module):
         output = self.model(graph, graph.node_feature.float())
         return output
 
+class EnzymeSaProtFusionNetworkWrapper(nn.Module):
+    def __init__(self, use_graph_construction_model=True) -> None:
+        super(EnzymeSaProtFusionNetworkWrapper, self).__init__()
+        saprot_state_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../checkpoints/SaProt_650M_AF2'))
+        assert os.path.exists(saprot_state_path)
+        sequence_model = SaProtESM(path=saprot_state_path, model='SaProt_650M_AF2')
+
+        structure_model = GearNet(
+        input_dim=1280,
+        hidden_dims=[512, 512, 512, 512, 512, 512],
+        batch_norm=True,
+        short_cut=True,
+        readout='sum',
+        num_relation=7
+         )
+        
+        fusion_model = EnzymeFusionNetwork(sequence_model=sequence_model, structure_model=structure_model)
+
+
+        self.model = fusion_model
+
+        self.graph_construction_model = layers.geometry.graph.GraphConstruction(
+            node_layers = [layers.geometry.AlphaCarbonNode()],
+            edge_layers = [
+                layers.geometry.SequentialEdge(max_distance=2),
+                layers.geometry.SpatialEdge(radius=10, min_distance=5),
+                layers.geometry.KNNEdge(k=10, max_distance=0)
+            ]
+        ) if use_graph_construction_model else None
+
+        self.output_dim = fusion_model.output_dim
+
+    def forward(self, batch):
+
+        graph = batch['protein_graph']
+        if self.graph_construction_model:
+            graph = self.graph_construction_model(graph)
+        output = self.model(graph, batch['saprot_batch_tokens'])
+        return output
+
+
 
 
 
@@ -347,34 +389,64 @@ if __name__ == '__main__':
     from tqdm import tqdm
     sys.path.append(os.path.join(os.path.abspath(os.getcwd()),'..'))
     from data_loaders.enzyme_dataloader import EnzymeDataset, enzyme_dataset_graph_collate
+    from data_loaders.enzyme_rxn_dataloader import EnzymeReactionSiteTypeSaProtDataset, EnzymeRxnSaprotCollate
     from torch.utils import data as torch_data
-
+    from common.utils import cuda
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    dataset = EnzymeDataset(
-        path=
-        'dataset/ec_site_dataset/uniprot_ecreact_merge_dataset_limit_10000',
+    # dataset = EnzymeDataset(
+    #     path=
+    #     'dataset/ec_site_dataset/uniprot_ecreact_merge_dataset_limit_10000',
+    #     save_precessed=False,
+    #     debug=True,
+    #     verbose=1,
+    #     lazy=True,
+    #     nb_workers=12)
+    
+    # train_set, valid_set, test_set = dataset.split()
+
+    # enzyme_fusion_model = EnzymeFusionNetworkWrapper(use_graph_construction_model=True)
+    # enzyme_fusion_model.to(device)
+
+
+    # train_loader = torch_data.DataLoader(
+    #     train_set,
+    #     batch_size=2,
+    #     collate_fn=enzyme_dataset_graph_collate,
+    #     num_workers=4)
+    
+    # for batch_data in tqdm(train_loader):
+    #     if device.type == "cuda":
+    #         batch_data = utils.cuda(batch_data, device=device)
+    #     enzyme_fusion_model(batch_data)
+
+
+    dataset = EnzymeReactionSiteTypeSaProtDataset(
+        path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
         save_precessed=False,
-        debug=True,
+        debug=False,
         verbose=1,
         lazy=True,
-        nb_workers=12)
+        nb_workers=12,
+        foldseek_bin_path="../foldseek_bin/foldseek",
+    )
     
     train_set, valid_set, test_set = dataset.split()
 
-    enzyme_fusion_model = EnzymeFusionNetworkWrapper(use_graph_construction_model=True)
+    enzyme_fusion_model = EnzymeSaProtFusionNetworkWrapper(use_graph_construction_model=True)
     enzyme_fusion_model.to(device)
 
-
+    enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
     train_loader = torch_data.DataLoader(
         train_set,
         batch_size=2,
-        collate_fn=enzyme_dataset_graph_collate,
+        collate_fn=enzyme_rxn_saprot_collate_extract,
         num_workers=4)
     
     for batch_data in tqdm(train_loader):
         if device.type == "cuda":
-            batch_data = utils.cuda(batch_data, device=device)
+            batch_data = cuda(batch_data, device=device)
         enzyme_fusion_model(batch_data)
+    
     
