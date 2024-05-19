@@ -146,7 +146,7 @@ def evaluate_vmulti(
     valid_dataloader = torch_data.DataLoader(
         sampled_valid_set,
         batch_size=args.batch_size,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=enzyme_rxn_saprot_collate_extract,
         num_workers=args.num_workers,
     )
 
@@ -566,7 +566,9 @@ def main(args):
             use_saprot_esm=True,
         )
     elif args.task_type == "ablation-experiment-1":
-        model = EnzymeActiveSiteESMGearNetModel(bridge_hidden_dim=args.bridge_hidden_dim)
+        model = EnzymeActiveSiteESMGearNetModel(
+            bridge_hidden_dim=args.bridge_hidden_dim
+        )
 
     elif args.task_type == "ablation-experiment-2":
         model = EnzymeActiveSiteModel(
