@@ -114,7 +114,8 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
                                                   database,
                                                   blastp_results,
                                                   scoring=True,
-                                                  top_n=5):
+                                                  top_n=5,
+                                                  output_results=False):
     predicted_activate_sites = []
     accuracy_list = []
     precision_list = []
@@ -206,7 +207,16 @@ def predict_activate_site_with_sequence_alignment(test_dataset,
                 sum(f1_scores_list) / len(f1_scores_list),
                 sum(mcc_scores_list) / len(mcc_scores_list),
                 ))
-
+    if output_results:
+        test_dataset['predict_active_label'] = predicted_activate_sites
+        test_dataset['accuracy'] = accuracy_list
+        test_dataset['precision'] = precision_list
+        test_dataset['specificity'] = specificity_list
+        test_dataset['overlap_scores'] = overlap_scores_list
+        test_dataset['false_positive_rates'] = false_positive_rates_list
+        test_dataset['f1_scores'] = f1_scores_list
+        test_dataset['mcc_scores'] = mcc_scores_list
+        return test_dataset
     return predicted_activate_sites, overlap_scores_list, false_positive_rates_list
 
 
@@ -214,7 +224,8 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
                                                   database,
                                                   blastp_results,
                                                   scoring=True,
-                                                  top_n=5):
+                                                  top_n=5,
+                                                  output_results=False):
     predicted_activate_sites = []
     predicted_activate_sites_vec = []
     accuracy_list = []
@@ -336,7 +347,18 @@ def predict_activate_site_type_with_sequence_alignment(test_dataset,
         multiclass_report_str = ['{}: {:.4f}'.format(key, sum(multicls_metrics_collection[key])/len(multicls_metrics_collection[key])) for key in  multicls_cols]
         print(', '.join(multiclass_report_str))
         
-
+    if output_results:
+        test_dataset['predict_active_label'] = predicted_activate_sites
+        test_dataset['accuracy'] = accuracy_list
+        test_dataset['precision'] = precision_list
+        test_dataset['specificity'] = specificity_list
+        test_dataset['overlap_scores'] = overlap_scores_list
+        test_dataset['false_positive_rates'] = false_positive_rates_list
+        test_dataset['f1_scores'] = f1_scores_list
+        test_dataset['mcc_scores'] = mcc_scores_list
+        for key in multicls_cols:
+            test_dataset[key] = multicls_metrics_collection[key]
+        return test_dataset
     return predicted_activate_sites, predicted_activate_sites_vec, overlap_scores_list, false_positive_rates_list
 
 

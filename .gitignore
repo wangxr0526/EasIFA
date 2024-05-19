@@ -28,3 +28,5 @@ script/*
 webapp/database.md
 foldseek_bin
 script/baseline_methods/sitemap_workspace
+results
+script/baseline_methods/baseline_results
