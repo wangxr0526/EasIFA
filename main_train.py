@@ -12,6 +12,8 @@ from torch.utils import data as torch_data
 from data_loaders.enzyme_rxn_dataloader import (
     EnzymeReactionDataset,
     EnzymeReactionSiteTypeDataset,
+    EnzymeReactionRXNFPDataset,
+    EnzymeRxnfpCollate,
     enzyme_rxn_collate_extract,
 )
 from torch.optim import AdamW
@@ -24,6 +26,7 @@ from model_structure.enzyme_site_model import (
     EnzymeActiveSiteESMGearNetModel,
     EnzymeActiveSiteESMModel,
     EnzymeActiveSiteModel,
+    EnzymeActiveSiteRXNFPModel,
 )
 from common.utils import (
     calculate_scores_vbin_train,
@@ -68,7 +71,7 @@ def evaluate_vbin(
     valid_dataloader = torch_data.DataLoader(
         sampled_valid_set,
         batch_size=args.batch_size,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         num_workers=args.num_workers,
     )
 
@@ -140,7 +143,7 @@ def evaluate_vmulti(
     valid_dataloader = torch_data.DataLoader(
         sampled_valid_set,
         batch_size=args.batch_size,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         num_workers=args.num_workers,
     )
 
@@ -526,6 +529,15 @@ def main(args):
             lazy=True,
             nb_workers=args.propcess_core,
         )
+    elif args.task_type == "ablation-experiment-4":
+        dataset = EnzymeReactionRXNFPDataset(
+            path=args.dataset_path,
+            save_precessed=False,
+            debug=debug,
+            verbose=1,
+            lazy=True,
+            nb_workers=args.propcess_core,
+        )
     else:
         dataset = EnzymeReactionDataset(
             path=args.dataset_path,
@@ -540,11 +552,17 @@ def main(args):
 
     train_sampler = torch_data.DistributedSampler(train_set)
 
+    if args.task_type == "ablation-experiment-4":
+        enzyme_rxnfp_collate_extract = EnzymeRxnfpCollate()
+        args.collate_fn = enzyme_rxnfp_collate_extract
+    else:
+        args.collate_fn = enzyme_rxn_collate_extract
+
     train_dataloader = torch_data.DataLoader(
         train_set,
         batch_size=args.batch_size,
         sampler=train_sampler,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         num_workers=args.num_workers,
     )
 
@@ -572,7 +590,10 @@ def main(args):
     elif args.task_type == "ablation-experiment-3":
         model = EnzymeActiveSiteESMModel(
             rxn_model_path=args.pretrained_rxn_attn_model_path
-        )  
+        )
+
+    elif args.task_type == "ablation-experiment-4":
+        model = EnzymeActiveSiteRXNFPModel()
 
     else:
         raise ValueError("Task erro")
@@ -700,6 +721,7 @@ if __name__ == "__main__":
             "ablation-experiment-1",  # 消融实验1： 研究反应分支及酶-反应相互作用网络的作用
             "ablation-experiment-2",  # 消融实验2： 研究反应分支预训练的作用
             "ablation-experiment-3",  # 消融实验3： 研究GearNet的作用
+            "ablation-experiment-4",  # 消融实验4： 研究反应分支为rxnfp的影响
         ],
         default="active-site-position-prediction",
         help="Choose a task",

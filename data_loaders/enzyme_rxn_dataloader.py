@@ -6,6 +6,7 @@ import pickle
 import random
 import warnings
 import pandas as pd
+
 import torch
 import esm
 import dgl
@@ -19,7 +20,10 @@ import logging
 from torchdrug import data, utils
 from pandarallel import pandarallel
 from dgllife.utils import WeaveAtomFeaturizer, CanonicalBondFeaturizer, mol_to_bigraph
+import pkg_resources
+from rxnfp.tokenization import SmilesTokenizer
 import sys
+
 
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
@@ -1181,6 +1185,82 @@ class EnzymeReactionSiteTypeSaProtDataset(EnzymeReactionSiteTypeDataset):
         return combined_seq
 
 
+class EnzymeReactionRXNFPDataset(EnzymeReactionDataset):
+    def get_item(self, index):
+        _, pdb_name = os.path.split(self.pdb_files[index])
+        pdb_id = pdb_name.split(".")[0]
+        pdb_file = os.path.join(self.alphafold_db_path, f"{pdb_id}.pdb")
+        proprecessed_pdb_file = os.path.join(
+            self.proprecessed_alphafold_db_path, f"{pdb_id}.pkl"
+        )
+
+        rxn = self.rxn_smiles[index]
+
+        if getattr(self, "lazy", False):
+
+            if not os.path.exists(proprecessed_pdb_file):
+                protein = data.Protein.from_pdb(pdb_file, self.kwargs)
+                if self.save_processed:
+                    torch.save(protein, proprecessed_pdb_file)
+            else:
+                protein = torch.load(proprecessed_pdb_file)
+
+        else:
+            protein = self.data[index].clone()
+
+
+        if hasattr(protein, "residue_feature"):
+            with protein.residue():
+                protein.residue_feature = protein.residue_feature.to_dense()
+
+        item = {"protein_graph": protein, "rxn_smiles": rxn}
+        if self.transform:
+            item = self.transform(item)
+        try:
+            active_site = self.calculate_active_sites(
+                site_label=self.site_labels[index],
+                sequence_length=len(self.uniport_sequences[index]),
+            )
+        except:
+            return {}
+        assert protein.num_residue.item() == len(active_site)
+        item["targets"] = active_site
+
+        return item
+    
+class EnzymeRxnfpCollate:
+    def __init__(self, rxnfp_model_name='bert_ft', rxnfp_max_length=512) -> None:
+
+        self.rxnfp_tokenizer_vocab_path = (
+        pkg_resources.resource_filename(
+                    "rxnfp",
+                    f"models/transformers/{rxnfp_model_name}/vocab.txt"
+                )
+        )
+        self.rxnfp_max_length = rxnfp_max_length
+        self.tokenizer = SmilesTokenizer(
+            self.rxnfp_tokenizer_vocab_path
+        )
+        pass
+
+    def __call__(self, batch):
+        batch = [x for x in batch if x]
+        if not batch:
+            return
+        rxn_smiles = [x.pop("rxn_smiles") for x in batch]
+
+        rxn_bert_inputs = self.tokenizer.batch_encode_plus(rxn_smiles, max_length=self.rxnfp_max_length, padding=True, truncation=True, return_tensors='pt')
+
+        batch_data = enzyme_rxn_collate(batch)
+        batch_data["rxn_bert_inputs"] = rxn_bert_inputs
+        assert isinstance(batch_data, dict)
+        if "targets" in batch_data:
+            if isinstance(batch_data["targets"], tuple):
+                targets, size = batch_data["targets"]
+                batch_data["targets"] = targets
+                batch_data["protein_len"] = size.view(-1)
+        return batch_data
+
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # dataset = EnzymeReactionDataset(path='dataset/ec_site_dataset/uniprot_ecreact_merge_dataset_limit_10000', save_precessed=False, debug=False, verbose=1, lazy=True, nb_workers=12)
@@ -1245,15 +1325,49 @@ if __name__ == "__main__":
     #     nb_workers=12,
     #     foldseek_bin_path="../foldseek_bin/foldseek",
     # )
+    '''
+    SaProt数据集类测试区域
+    '''
+    # dataset = EnzymeReactionSaProtDataset(
+    #     path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
+    #     save_precessed=False,
+    #     debug=False,
+    #     verbose=1,
+    #     lazy=True,
+    #     nb_workers=12,
+    #     foldseek_bin_path="../foldseek_bin/foldseek",
+    # )
 
-    dataset = EnzymeReactionSaProtDataset(
+    # train_set, valid_set, test_set = dataset.split()
+    # for i in tqdm(range(10)):
+    #     train_set[i]
+    #     valid_set[i]
+    #     test_set[i]
+    # enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
+    # train_loader = torch_data.DataLoader(
+    #     train_set,
+    #     batch_size=8,
+    #     collate_fn=enzyme_rxn_saprot_collate_extract,
+    #     # collate_fn=enzyme_rxn_collate_extract,
+    #     num_workers=2,
+    # )
+    # for batch_data in tqdm(train_loader, desc="train loader"):
+    #     if device.type == "cuda":
+    #         batch_data = cuda(batch_data, device=device)
+    #     check_function(batch_data)
+
+    '''
+    rxnfp数据集类测试区域
+    '''
+
+
+    dataset = EnzymeReactionRXNFPDataset(
         path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
         save_precessed=False,
         debug=False,
         verbose=1,
         lazy=True,
-        nb_workers=12,
-        foldseek_bin_path="../foldseek_bin/foldseek",
+        nb_workers=12
     )
 
     train_set, valid_set, test_set = dataset.split()
@@ -1261,11 +1375,11 @@ if __name__ == "__main__":
         train_set[i]
         valid_set[i]
         test_set[i]
-    enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
+    enzyme_rxnfp_collate_extract = EnzymeRxnfpCollate()
     train_loader = torch_data.DataLoader(
         train_set,
         batch_size=8,
-        collate_fn=enzyme_rxn_saprot_collate_extract,
+        collate_fn=enzyme_rxnfp_collate_extract,
         # collate_fn=enzyme_rxn_collate_extract,
         num_workers=2,
     )

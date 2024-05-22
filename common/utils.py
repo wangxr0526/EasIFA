@@ -13,6 +13,7 @@ import shutil
 from rdkit import Chem
 from rdkit.Chem.Draw import SimilarityMaps
 from matplotlib import pyplot as plt
+from transformers.tokenization_utils_base import BatchEncoding
 
 def save_model(model_state, args, eval_results, model_save_path):
     if not os.path.exists(model_save_path):
@@ -127,6 +128,9 @@ def cuda(obj, *args, **kwargs):
         return type(obj)(cuda(x, *args, **kwargs) for x in obj)
     
     elif isinstance(obj, dgl.DGLGraph):
+        return obj.to(*args, **kwargs)
+    
+    elif isinstance(obj, BatchEncoding):
         return obj.to(*args, **kwargs)
 
     raise TypeError("Can't transfer object type `%s`" % type(obj))

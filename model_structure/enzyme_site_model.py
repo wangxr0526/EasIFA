@@ -1,6 +1,8 @@
 import os
 import sys
 
+import pkg_resources
+
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
@@ -9,6 +11,7 @@ from common.utils import read_model_state, load_pretrain_model_state
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
+from transformers import BertModel
 from model_structure.enzyme_attn_model import (
     EnzymeFusionNetworkWrapper as EnzymeAttnNetwork,
     EnzymeSaProtFusionNetworkWrapper as EnzymeAttnSaProtNetwork,
@@ -256,9 +259,7 @@ class EnzymeActiveSiteESMModel(EnzymeActiveSiteModel):
         super(EnzymeActiveSiteModel, self).__init__()
         self.from_scratch = from_scratch
 
-        self.enzyme_attn_model = EnzymeESMNetwork(
-            use_graph_construction_model=True
-        )
+        self.enzyme_attn_model = EnzymeESMNetwork(use_graph_construction_model=True)
 
         self.rxn_attn_model = self._load_rxn_attn_model(rxn_model_path)
 
@@ -278,6 +279,58 @@ class EnzymeActiveSiteESMModel(EnzymeActiveSiteModel):
         self.active_net = FeedForward(self.rxn_attn_model.node_out_dim, 2)
 
 
+class EnzymeActiveSiteRXNFPModel(nn.Module):
+    def __init__(self, rxnfp_model_name="bert_ft") -> None:
+        super(EnzymeActiveSiteRXNFPModel, self).__init__()
+        self.enzyme_attn_model = EnzymeAttnNetwork(use_graph_construction_model=True)
+        rxnfp_model_path = pkg_resources.resource_filename(
+            "rxnfp", f"models/transformers/{rxnfp_model_name}"
+        )
+
+        self.rxn_attn_model = BertModel.from_pretrained(rxnfp_model_path)
+        self.rxnfp_max_length = self.rxn_attn_model.config.max_position_embeddings
+
+        self.brige_model = FeedForward(
+            self.enzyme_attn_model.output_dim, self.rxn_attn_model.config.hidden_size
+        )
+
+        self.interaction_net = GlobalMultiHeadAttention(
+            self.rxn_attn_model.config.hidden_size,
+            heads=8,
+            n_layers=3,
+            cross_attn_h_rate=1,
+            dropout=0.1,
+            positional_number=0,
+        )
+        self.active_net = FeedForward(self.rxn_attn_model.config.hidden_size, 2)
+
+    def forward(self, batch):
+        output_protein = self.enzyme_attn_model(batch)
+        output_reaction = self.rxn_attn_model(**batch["rxn_bert_inputs"])
+
+        rxn_feature = output_reaction["last_hidden_state"]
+        rxn_mask = batch["rxn_bert_inputs"]["attention_mask"]
+
+        protein_node_feature = self.brige_model(output_protein["node_feature"])
+
+        protein_node_feature, protein_mask = pack_residue_feats(
+            batch["protein_graph"], protein_node_feature
+        )
+
+        protein_node_feature, _, _, _, _ = self.interaction_net(
+            src=protein_node_feature,
+            tgt=rxn_feature,
+            src_mask=protein_mask,
+            tgt_mask=rxn_mask,
+        )
+
+        protein_node_feature = protein_node_feature[protein_mask.bool()]
+
+        out = self.active_net(protein_node_feature)
+        return out, protein_mask
+        pass
+
+
 if __name__ == "__main__":
     from tqdm import tqdm
     from torch.utils import data as torch_data
@@ -288,6 +341,8 @@ if __name__ == "__main__":
         EnzymeReactionSiteTypeSaProtDataset,
         EnzymeRxnSaprotCollate,
         EnzymeReactionSaProtDataset,
+        EnzymeReactionRXNFPDataset,
+        EnzymeRxnfpCollate,
     )
 
     from data_loaders.enzyme_dataloader import EnzymeDataset
@@ -422,26 +477,61 @@ if __name__ == "__main__":
     #     out, _ = model(batch_data)
     #     targets = batch_data["targets"]
 
-        # if not is_valid_outputs(out, targets):
-        #     batchs.append(batch_data)
+    # if not is_valid_outputs(out, targets):
+    #     batchs.append(batch_data)
+    """
+    消融实验测试区域
+    """
+    # dataset = EnzymeReactionDataset(path='dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100', save_precessed=False, debug=False, verbose=1, lazy=True, nb_workers=12)
+    # train_set, valid_set, test_set = dataset.split()
 
-    dataset = EnzymeReactionDataset(path='dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100', save_precessed=False, debug=False, verbose=1, lazy=True, nb_workers=12)
-    train_set, valid_set, test_set = dataset.split()
+    # model = EnzymeActiveSiteESMModel(
+    #     rxn_model_path="../checkpoints/reaction_attn_net/model-ReactionMGMTurnNet_train_in_uspto_at_2023-04-05-23-46-25/checkpoint_epoch_72-global_step_1765001",
+    # )
 
-    model = EnzymeActiveSiteESMModel(
-        rxn_model_path="../checkpoints/reaction_attn_net/model-ReactionMGMTurnNet_train_in_uspto_at_2023-04-05-23-46-25/checkpoint_epoch_72-global_step_1765001",
+    # model.to(device)
+
+    # train_loader = torch_data.DataLoader(
+    #     train_set,
+    #     batch_size=2,
+    #     collate_fn=enzyme_rxn_collate_extract,
+    #     num_workers=6)
+    # for batch_data in tqdm(train_loader, desc="train loader"):
+    #     if device.type == "cuda":
+    #         batch_data = cuda(batch_data, device=device)
+    #     # out, protein_mask = model(batch_data)
+    #     out, _ = model(batch_data)
+    #     targets = batch_data["targets"]
+
+    """
+    rxnfp模型测试区域
+    """
+    dataset = EnzymeReactionRXNFPDataset(
+        path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
+        save_precessed=False,
+        debug=False,
+        verbose=1,
+        lazy=True,
+        nb_workers=12,
     )
-
+    model = EnzymeActiveSiteRXNFPModel()
     model.to(device)
 
+    train_set, valid_set, test_set = dataset.split()
+    # for i in tqdm(range(10)):
+    #     train_set[i]
+    #     valid_set[i]
+    #     test_set[i]
+    enzyme_rxnfp_collate_extract = EnzymeRxnfpCollate(model.rxnfp_max_length)
     train_loader = torch_data.DataLoader(
         train_set,
-        batch_size=1,
-        collate_fn=enzyme_rxn_collate_extract,
-        num_workers=6)
+        batch_size=2,
+        collate_fn=enzyme_rxnfp_collate_extract,
+        # collate_fn=enzyme_rxn_collate_extract,
+        num_workers=2,
+    )
     for batch_data in tqdm(train_loader, desc="train loader"):
         if device.type == "cuda":
             batch_data = cuda(batch_data, device=device)
-        # out, protein_mask = model(batch_data)
-        out, _ = model(batch_data)
-        targets = batch_data["targets"]
+
+        model(batch_data)
