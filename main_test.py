@@ -44,6 +44,17 @@ def main(args):
             lazy=True,
             nb_workers=12,
         )
+    elif args.task_type == "direct-test-mcsa":
+        dataset = EnzymeReactionDataset(
+            path=args.dataset_path,
+            structure_path=args.structure_path,
+            save_precessed=False,
+            debug=False,
+            verbose=1,
+            protein_max_length=1000,
+            lazy=True,
+            nb_workers=12,
+        )
     else:
         dataset = EnzymeReactionDataset(
             path=args.dataset_path,
@@ -78,7 +89,7 @@ def main(args):
         num_workers=4,
     )
 
-    if args.task_type == "active-site-position-prediction":
+    if args.task_type in ["active-site-position-prediction", "direct-test-mcsa"]:
         model = EnzymeActiveSiteModel(
             rxn_model_path=args.pretrained_rxn_attn_model_path
         )
@@ -282,6 +293,7 @@ if __name__ == "__main__":
             "ablation-experiment-1",  # 消融实验1： 研究反应分支及酶-反应相互作用网络的作用
             "ablation-experiment-2",  # 消融实验2： 研究反应分支预训练的作用
             "ablation-experiment-3",  # 消融实验3： 研究GearNet的作用
+            "direct-test-mcsa",  # 直接使用SwissProt E-RXN ASA训练的active-site-position-prediction模型测试MCSA测试集
         ],
         default="active-site-position-prediction",
         help="Choose a task",
@@ -293,6 +305,9 @@ if __name__ == "__main__":
         default="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
         help="Test dataset path",
     )
+    parser.add_argument(
+        "--structure_path", type=str, default="dataset/mcsa_fine_tune/structures"
+    )  # 只在direct-test-mcsa下起作用
     parser.add_argument(
         "--pretrained_rxn_attn_model_path",
         type=str,
