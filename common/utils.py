@@ -13,19 +13,20 @@ import shutil
 from rdkit import Chem
 from rdkit.Chem.Draw import SimilarityMaps
 from matplotlib import pyplot as plt
+from copy import deepcopy
 from transformers.tokenization_utils_base import BatchEncoding
 
 def save_model(model_state, args, eval_results, model_save_path):
     if not os.path.exists(model_save_path):
         os.makedirs(model_save_path)
-
+    save_args = deepcopy(args)
     model_state_fname = os.path.join(model_save_path, 'model.pth')
     args_fname = os.path.join(model_save_path, 'args.yml')
     eval_results_fname = os.path.join(model_save_path, 'eval_results.csv')
-    args.pop('collate_fn')
+    save_args.pop('collate_fn')
     torch.save(model_state, model_state_fname)
     with open(args_fname, 'w', encoding='utf-8') as f:
-        yaml.dump(args, f)
+        yaml.dump(save_args, f)
     eval_results.to_csv(eval_results_fname, index=False)
 
 def delete_ckpt(path):
