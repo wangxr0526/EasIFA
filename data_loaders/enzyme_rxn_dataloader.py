@@ -25,7 +25,6 @@ from rxnfp.tokenization import SmilesTokenizer
 import sys
 
 
-
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 from common.utils import cuda
@@ -1050,7 +1049,7 @@ class EnzymeReactionSaProtDataset(EnzymeReactionDataset):
             )
         except:
             return {}
-        assert protein.num_residue.item() == len(active_site), f'{pdb_file}'
+        assert protein.num_residue.item() == len(active_site), f"{pdb_file}"
         item["targets"] = active_site
 
         saprot_combined_seq = self.calculate_saprot_parsed_seqs(
@@ -1185,6 +1184,116 @@ class EnzymeReactionSiteTypeSaProtDataset(EnzymeReactionSiteTypeDataset):
         return combined_seq
 
 
+class AugEnzymeReactionSaProtDataset(AugEnzymeReactionDataset):
+    def __init__(
+        self,
+        path,
+        dataset_root=_dataset_root,
+        structure_path=_structure_path,
+        debug=False,
+        verbose=1,
+        nb_workers=12,
+        protein_max_length=600,
+        save_precessed=True,
+        use_aug=False,
+        soft_check=False,
+        foldseek_bin_path=None,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            path,
+            dataset_root,
+            structure_path,
+            debug,
+            verbose,
+            nb_workers,
+            protein_max_length,
+            save_precessed,
+            use_aug,
+            soft_check,
+            **kwargs,
+        )
+
+        self.foldseek_bin_path = foldseek_bin_path
+
+    def get_item(self, index):
+        _, pdb_name = os.path.split(self.pdb_files[index])
+        pdb_id = pdb_name.split(".")[0]
+        pdb_file = os.path.join(self.structure_path, f"{pdb_id}.pdb")
+        proprecessed_pdb_file = os.path.join(
+            self.proprecessed_alphafold_db_path, f"{pdb_id}.pkl"
+        )
+
+        rxn = self.rxn_smiles[index]
+        proprecessed_rxn_file = os.path.join(
+            self.proprecessed_rxn_path, f"{calculate_rxn_hash(rxn)}.pkl"
+        )
+
+        if getattr(self, "lazy", False):
+
+            if not os.path.exists(proprecessed_pdb_file):
+                protein = MyProtein.from_pdb(pdb_file, self.kwargs)
+                if self.save_processed:
+                    torch.save(protein, proprecessed_pdb_file)
+            else:
+                protein = torch.load(proprecessed_pdb_file)
+
+            if not os.path.exists(proprecessed_rxn_file):
+                reaction_features = self._calculate_rxn_features(rxn)
+                if self.save_processed:
+                    torch.save(reaction_features, proprecessed_rxn_file)
+            else:
+                reaction_features = torch.load(proprecessed_rxn_file)
+
+        else:
+            protein = self.data[index].clone()
+            reaction_features = deepcopy(self.rxn_data[index])
+
+        rxn_fclass = ReactionFeatures(reaction_features)
+
+        if hasattr(protein, "residue_feature"):
+            with protein.residue():
+                protein.residue_feature = protein.residue_feature.to_dense()
+
+        item = {"protein_graph": protein, "reaction_graph": rxn_fclass}
+        if self.transform:
+            item = self.transform(item)
+        try:
+            active_site = self.calculate_active_sites(
+                site_label=self.site_labels[index],
+                sequence_length=len(self.uniport_sequences[index]),
+            )
+        except:
+            return {}
+        assert protein.num_residue.item() == len(active_site)
+        item["targets"] = active_site
+
+        saprot_combined_seq = self.calculate_saprot_parsed_seqs(
+            pdb_file, process_id=pdb_id
+        )
+        item["saprot_combined_seq"] = saprot_combined_seq
+
+        return item
+
+    def calculate_saprot_parsed_seqs(self, pdb_path, process_id):
+        # Sample a random rank to avoid file conflict
+        rank = random.randint(0, 1000000)
+        try:
+            parsed_seqs = get_struc_seq(
+                self.foldseek_bin_path,
+                pdb_path,
+                chains=["A"],
+                process_id=f"{process_id}_{rank}",
+            )[
+                "A"
+            ]  # 现在只考虑一个chain的情况
+        except:
+            print(process_id)
+            ValueError()
+        combined_seq = parsed_seqs[-1]
+        return combined_seq
+
+
 class EnzymeReactionRXNFPDataset(EnzymeReactionDataset):
     def get_item(self, index):
         _, pdb_name = os.path.split(self.pdb_files[index])
@@ -1208,7 +1317,6 @@ class EnzymeReactionRXNFPDataset(EnzymeReactionDataset):
         else:
             protein = self.data[index].clone()
 
-
         if hasattr(protein, "residue_feature"):
             with protein.residue():
                 protein.residue_feature = protein.residue_feature.to_dense()
@@ -1227,20 +1335,16 @@ class EnzymeReactionRXNFPDataset(EnzymeReactionDataset):
         item["targets"] = active_site
 
         return item
-    
-class EnzymeRxnfpCollate:
-    def __init__(self, rxnfp_model_name='bert_ft', rxnfp_max_length=512) -> None:
 
-        self.rxnfp_tokenizer_vocab_path = (
-        pkg_resources.resource_filename(
-                    "rxnfp",
-                    f"models/transformers/{rxnfp_model_name}/vocab.txt"
-                )
+
+class EnzymeRxnfpCollate:
+    def __init__(self, rxnfp_model_name="bert_ft", rxnfp_max_length=512) -> None:
+
+        self.rxnfp_tokenizer_vocab_path = pkg_resources.resource_filename(
+            "rxnfp", f"models/transformers/{rxnfp_model_name}/vocab.txt"
         )
         self.rxnfp_max_length = rxnfp_max_length
-        self.tokenizer = SmilesTokenizer(
-            self.rxnfp_tokenizer_vocab_path
-        )
+        self.tokenizer = SmilesTokenizer(self.rxnfp_tokenizer_vocab_path)
         pass
 
     def __call__(self, batch):
@@ -1249,7 +1353,13 @@ class EnzymeRxnfpCollate:
             return
         rxn_smiles = [x.pop("rxn_smiles") for x in batch]
 
-        rxn_bert_inputs = self.tokenizer.batch_encode_plus(rxn_smiles, max_length=self.rxnfp_max_length, padding=True, truncation=True, return_tensors='pt')
+        rxn_bert_inputs = self.tokenizer.batch_encode_plus(
+            rxn_smiles,
+            max_length=self.rxnfp_max_length,
+            padding=True,
+            truncation=True,
+            return_tensors="pt",
+        )
 
         batch_data = enzyme_rxn_collate(batch)
         batch_data["rxn_bert_inputs"] = rxn_bert_inputs
@@ -1260,6 +1370,7 @@ class EnzymeRxnfpCollate:
                 batch_data["targets"] = targets
                 batch_data["protein_len"] = size.view(-1)
         return batch_data
+
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -1325,9 +1436,9 @@ if __name__ == "__main__":
     #     nb_workers=12,
     #     foldseek_bin_path="../foldseek_bin/foldseek",
     # )
-    '''
+    """
     SaProt数据集类测试区域
-    '''
+    """
     # dataset = EnzymeReactionSaProtDataset(
     #     path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
     #     save_precessed=False,
@@ -1356,10 +1467,9 @@ if __name__ == "__main__":
     #         batch_data = cuda(batch_data, device=device)
     #     check_function(batch_data)
 
-    '''
+    """
     rxnfp数据集类测试区域
-    '''
-
+    """
 
     dataset = EnzymeReactionRXNFPDataset(
         path="dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100",
@@ -1367,7 +1477,7 @@ if __name__ == "__main__":
         debug=False,
         verbose=1,
         lazy=True,
-        nb_workers=12
+        nb_workers=12,
     )
 
     train_set, valid_set, test_set = dataset.split()

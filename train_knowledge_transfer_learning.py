@@ -12,6 +12,9 @@ from torch.utils import data as torch_data
 from data_loaders.enzyme_rxn_dataloader import (
     AugEnzymeReactionDataset,
     EnzymeReactionDataset,
+    AugEnzymeReactionSaProtDataset,
+    EnzymeReactionSaProtDataset,
+    EnzymeRxnSaprotCollate,
     enzyme_rxn_collate_extract,
 )
 from torch.optim import AdamW
@@ -64,7 +67,7 @@ def evaluate(
     valid_dataloader = torch_data.DataLoader(
         sampled_valid_set,
         batch_size=args.batch_size,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         num_workers=args.num_workers,
     )
 
@@ -280,18 +283,65 @@ def main(args):
 
     debug = args.debug
 
-    dataset = AugEnzymeReactionDataset(
-        path=args.dataset_path,
-        structure_path=args.structure_path,
-        save_precessed=False,
-        debug=debug,
-        verbose=1,
-        protein_max_length=1000,
-        lazy=True,
-        use_aug=args.use_aug,
-        soft_check=args.soft_check,
-        nb_workers=args.propcess_core,
-    )
+    if args.use_saprot:
+        enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
+        foldseek_bin_path = "foldseek_bin/foldseek"
+        assert os.path.exists(
+            foldseek_bin_path
+        ), f"Need foldseek binary file, download it: https://drive.google.com/file/d/1B_9t3n_nlj8Y3Kpc_mMjtMdY0OPYa7Re/view, and put it at {foldseek_bin_path}"
+        if args.use_aug:
+            dataset = AugEnzymeReactionSaProtDataset(
+                path=args.dataset_path,
+                structure_path=args.structure_path,
+                save_precessed=False,
+                debug=debug,
+                verbose=1,
+                protein_max_length=1000,
+                lazy=True,
+                use_aug=True,
+                soft_check=args.soft_check,
+                nb_workers=args.propcess_core,
+                foldseek_bin_path=foldseek_bin_path,
+            )
+
+        else:
+            dataset = EnzymeReactionSaProtDataset(
+                path=args.dataset_path,
+                structure_path=args.structure_path,
+                save_precessed=False,
+                debug=debug,
+                verbose=1,
+                lazy=True,
+                nb_workers=args.propcess_core,
+                foldseek_bin_path=foldseek_bin_path,
+            )
+        args.collate_fn = enzyme_rxn_saprot_collate_extract
+    else:
+        if args.use_aug:
+            dataset = AugEnzymeReactionDataset(
+                path=args.dataset_path,
+                structure_path=args.structure_path,
+                save_precessed=False,
+                debug=debug,
+                verbose=1,
+                protein_max_length=1000,
+                lazy=True,
+                use_aug=True,
+                soft_check=args.soft_check,
+                nb_workers=args.propcess_core,
+            )
+        else:
+            dataset = EnzymeReactionDataset(
+                path=args.dataset_path,
+                structure_path=args.structure_path,
+                save_precessed=False,
+                debug=False,
+                verbose=1,
+                protein_max_length=1000,
+                lazy=True,
+                nb_workers=args.propcess_core,
+            )
+        args.collate_fn = enzyme_rxn_collate_extract
 
     train_set, valid_set, _ = dataset.split()
 
@@ -301,11 +351,14 @@ def main(args):
         train_set,
         batch_size=args.batch_size,
         sampler=train_sampler,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         num_workers=args.num_workers,
     )
 
-    model = EnzymeActiveSiteModel(rxn_model_path=args.pretrained_rxn_attn_model_path)
+    model = EnzymeActiveSiteModel(
+        rxn_model_path=args.pretrained_rxn_attn_model_path,
+        use_saprot_esm=args.use_saprot,
+    )
 
     if args.train_from_checkpoint != "":
         model_state, _ = read_model_state(model_save_path=args.train_from_checkpoint)
@@ -490,6 +543,10 @@ if __name__ == "__main__":
         "--criteria",
         type=str,
         default="evaluation loss",
+    )
+    parser.add_argument(
+        "--use_saprot",
+        action="store_true",
     )
 
     args = parser.parse_args()
