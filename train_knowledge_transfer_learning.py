@@ -311,6 +311,7 @@ def main(args):
                 save_precessed=False,
                 debug=debug,
                 verbose=1,
+                protein_max_length=1000,
                 lazy=True,
                 nb_workers=args.propcess_core,
                 foldseek_bin_path=foldseek_bin_path,
