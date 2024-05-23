@@ -384,7 +384,7 @@ def main(args):
     if debug:
         model_save_path = os.path.join(args.checkpoint_path, "debug")
 
-    model = DDP(model, find_unused_parameters=False, device_ids=[device_id])
+    model = DDP(model, find_unused_parameters=True, device_ids=[device_id])
 
     pretrained_model_lr_ratio = {
         "enzyme_attn_model.model.sequence_model": args.protein_sequnece_model_lr_ratio,
