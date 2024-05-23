@@ -17,12 +17,15 @@ from data_loaders.enzyme_rxn_dataloader import (
     EnzymeReactionDataset,
     EnzymeReactionSiteTypeDataset,
     enzyme_rxn_collate_extract,
+    EnzymeRxnfpCollate,
+    EnzymeReactionRXNFPDataset,
 )
 from model_structure.enzyme_site_model import (
     EnzymeActiveSiteClsModel,
     EnzymeActiveSiteESMGearNetModel,
     EnzymeActiveSiteESMModel,
     EnzymeActiveSiteModel,
+    EnzymeActiveSiteRXNFPModel,
 )
 from main_train import is_valid_outputs
 
@@ -33,6 +36,12 @@ def main(args):
         if (args.gpu >= 0) and torch.cuda.is_available()
         else torch.device("cpu")
     )
+
+    if args.task_type == "ablation-experiment-4":
+        enzyme_rxnfp_collate_extract = EnzymeRxnfpCollate()
+        args.collate_fn = enzyme_rxnfp_collate_extract
+    else:
+        args.collate_fn = enzyme_rxn_collate_extract
 
     if args.task_type == "active-site-categorie-prediction":
         dataset = EnzymeReactionSiteTypeDataset(
@@ -52,6 +61,15 @@ def main(args):
             debug=False,
             verbose=1,
             protein_max_length=1000,
+            lazy=True,
+            nb_workers=12,
+        )
+    elif args.task_type == "ablation-experiment-4":
+        dataset = EnzymeReactionRXNFPDataset(
+            path=args.dataset_path,
+            save_precessed=False,
+            debug=False,
+            verbose=1,
             lazy=True,
             nb_workers=12,
         )
@@ -84,7 +102,7 @@ def main(args):
     test_dataloader = torch_data.DataLoader(
         test_dataset,
         batch_size=args.batch_size,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         shuffle=False,
         num_workers=4,
     )
@@ -108,10 +126,15 @@ def main(args):
             rxn_model_path=args.pretrained_rxn_attn_model_path,
             from_scratch=True,
         )  # 这里传递预训练的模型只是为了初始化模型的形状，但是模型state并不继承
+        
     elif args.task_type == "ablation-experiment-3":
         model = EnzymeActiveSiteESMModel(
             rxn_model_path=args.pretrained_rxn_attn_model_path
         )
+
+    elif args.task_type == "ablation-experiment-4":
+        model = EnzymeActiveSiteRXNFPModel()
+
     else:
         raise ValueError("Task erro")
 
@@ -293,6 +316,7 @@ if __name__ == "__main__":
             "ablation-experiment-1",  # 消融实验1： 研究反应分支及酶-反应相互作用网络的作用
             "ablation-experiment-2",  # 消融实验2： 研究反应分支预训练的作用
             "ablation-experiment-3",  # 消融实验3： 研究GearNet的作用
+            "ablation-experiment-4",  # 消融实验4： 研究反应分支为rxnfp的影响
             "direct-test-mcsa",  # 直接使用SwissProt E-RXN ASA训练的active-site-position-prediction模型测试MCSA测试集
         ],
         default="active-site-position-prediction",
