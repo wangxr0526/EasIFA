@@ -22,7 +22,7 @@ def save_model(model_state, args, eval_results, model_save_path):
     model_state_fname = os.path.join(model_save_path, 'model.pth')
     args_fname = os.path.join(model_save_path, 'args.yml')
     eval_results_fname = os.path.join(model_save_path, 'eval_results.csv')
-
+    args.pop('collate_fn')
     torch.save(model_state, model_state_fname)
     with open(args_fname, 'w', encoding='utf-8') as f:
         yaml.dump(args, f)
