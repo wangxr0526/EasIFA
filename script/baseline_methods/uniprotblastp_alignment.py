@@ -89,7 +89,7 @@ train_database_df['aa_sequence'] = train_database_df['Sequence'].apply(lambda x:
 train_database_df
 
 # %%
-test_dataset = test_dataset.loc[test_dataset['is_valid']]
+test_dataset = test_dataset.loc[test_dataset['is_valid']].reset_index()
 test_dataset
 
 # %%
@@ -145,11 +145,19 @@ import sys
 sys.path.append('../../')
 from dataset_preprocess.pdb_preprocess_utils import map_active_site_for_one
 from utils import predict_activate_site_with_sequence_alignment, predict_activate_site_type_with_sequence_alignment
+from common.utils import merge_similarity_index
 
 # %%
-predicted_activate_sites, overlap_scores, false_positive_rates = predict_activate_site_with_sequence_alignment(test_dataset, database=train_database_df, blastp_results=blast_p_results, top_n=5)
+test_dataset_with_similarity_index = pd.read_csv(os.path.join(dataset_path, 'test_dataset_with_similarity_idx.csv'))
+test_dataset = merge_similarity_index(test_dataset, test_dataset_with_similarity_index)
 
 # %%
-predicted_activate_sites, predicted_activate_sites_vec, overlap_scores_list, false_positive_rates_list = predict_activate_site_type_with_sequence_alignment(test_dataset, database=train_database_df, blastp_results=blast_p_results, top_n=5)
+# test_dataset_with_results = predict_activate_site_with_sequence_alignment(test_dataset, database=train_database_df, blastp_results=blast_p_results, top_n=5, output_results=True)
+
+# %%
+test_dataset_with_results: pd.DataFrame = predict_activate_site_type_with_sequence_alignment(test_dataset, database=train_database_df, blastp_results=blast_p_results, top_n=5, output_results=True)
+os.makedirs('baseline_results', exist_ok=True)
+test_dataset_with_results.to_csv(os.path.join('baseline_results', 'uniprotblastp_alignment.csv'), index=False)
+test_dataset_with_results.to_json(os.path.join('baseline_results', 'uniprotblastp_alignment.json'))
 
 
