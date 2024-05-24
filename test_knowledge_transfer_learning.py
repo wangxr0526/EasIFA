@@ -16,6 +16,8 @@ from data_loaders.enzyme_rxn_dataloader import (
     EnzymeReactionDataset,
     EnzymeReactionSiteTypeDataset,
     enzyme_rxn_collate_extract,
+    EnzymeRxnSaprotCollate,
+    EnzymeReactionSaProtDataset,
 )
 from model_structure.enzyme_site_model import (
     EnzymeActiveSiteClsModel,
@@ -32,28 +34,52 @@ def main(args):
         else torch.device("cpu")
     )
 
-    dataset = EnzymeReactionDataset(
-        path=args.dataset_path,
-        structure_path=args.structure_path,
-        save_precessed=False,
-        debug=False,
-        verbose=1,
-        protein_max_length=1000,
-        lazy=True,
-        nb_workers=args.propcess_core,
-    )
+    if args.use_saprot:
+        enzyme_rxn_saprot_collate_extract = EnzymeRxnSaprotCollate()
+        foldseek_bin_path = "foldseek_bin/foldseek"
+        assert os.path.exists(
+            foldseek_bin_path
+        ), f"Need foldseek binary file, download it: https://drive.google.com/file/d/1B_9t3n_nlj8Y3Kpc_mMjtMdY0OPYa7Re/view, and put it at {foldseek_bin_path}"
 
+        dataset = EnzymeReactionSaProtDataset(
+            path=args.dataset_path,
+            structure_path=args.structure_path,
+            save_precessed=False,
+            debug=False,
+            verbose=1,
+            protein_max_length=1000,
+            lazy=True,
+            nb_workers=args.propcess_core,
+            foldseek_bin_path=foldseek_bin_path,
+        )
+        args.collate_fn = enzyme_rxn_saprot_collate_extract
+    else:
+
+        dataset = EnzymeReactionDataset(
+            path=args.dataset_path,
+            structure_path=args.structure_path,
+            save_precessed=False,
+            debug=False,
+            verbose=1,
+            protein_max_length=1000,
+            lazy=True,
+            nb_workers=args.propcess_core,
+        )
+        args.collate_fn = enzyme_rxn_collate_extract
     _, _, test_dataset = dataset.split()
 
     test_dataloader = torch_data.DataLoader(
         test_dataset,
         batch_size=args.batch_size,
-        collate_fn=enzyme_rxn_collate_extract,
+        collate_fn=args.collate_fn,
         shuffle=False,
         num_workers=args.propcess_core,
     )
 
-    model = EnzymeActiveSiteModel(rxn_model_path=args.pretrained_rxn_attn_model_path)
+    model = EnzymeActiveSiteModel(
+        rxn_model_path=args.pretrained_rxn_attn_model_path,
+        use_saprot_esm=args.use_saprot,
+    )
 
     model_state, model_args = read_model_state(model_save_path=args.checkpoint)
     need_convert = model_args.get("need_convert", False)
@@ -186,6 +212,10 @@ if __name__ == "__main__":
         type=str,
         default="checkpoints/enzyme_site_predition_model/train_in_uniprot_ecreact_merge_dataset_limit_100_at_2023-05-25-20-39-05/global_step_44000",
         help="Pretrained reaction attention model path",
+    )
+    parser.add_argument(
+        "--use_saprot",
+        action="store_true",
     )
 
     parser.add_argument("--test_remove_aegan_train", type=bool, default=False)

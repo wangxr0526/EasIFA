@@ -126,7 +126,7 @@ def main(args):
             rxn_model_path=args.pretrained_rxn_attn_model_path,
             from_scratch=True,
         )  # 这里传递预训练的模型只是为了初始化模型的形状，但是模型state并不继承
-        
+
     elif args.task_type == "ablation-experiment-3":
         model = EnzymeActiveSiteESMModel(
             rxn_model_path=args.pretrained_rxn_attn_model_path
