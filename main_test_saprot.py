@@ -51,6 +51,18 @@ def main(args):
             nb_workers=12,
             foldseek_bin_path=foldseek_bin_path,
         )
+    elif args.task_type == "direct-test-mcsa":
+        dataset = EnzymeReactionSaProtDataset(
+                path=args.dataset_path,
+                structure_path=args.structure_path,
+                save_precessed=False,
+                debug=False,
+                verbose=1,
+                protein_max_length=1000,
+                lazy=True,
+                nb_workers=12,
+                foldseek_bin_path=foldseek_bin_path,
+            )
     else:
         dataset = EnzymeReactionSaProtDataset(
             path=args.dataset_path,
@@ -86,7 +98,7 @@ def main(args):
         num_workers=4,
     )
 
-    if args.task_type == "active-site-position-prediction":
+    if args.task_type in ["active-site-position-prediction", "direct-test-mcsa"]:
         model = EnzymeActiveSiteModel(
             rxn_model_path=args.pretrained_rxn_attn_model_path, use_saprot_esm=True
         )
@@ -266,11 +278,15 @@ def main(args):
     if args.output_score:
         os.makedirs(args.output_results_path, exist_ok=True)
         test_df_from_dataset.to_csv(
-            os.path.join(args.output_results_path, f"{args.task_type}_saprot_results.csv"),
+            os.path.join(
+                args.output_results_path, f"{args.task_type}_saprot_results.csv"
+            ),
             index=False,
         )
         test_df_from_dataset.to_json(
-            os.path.join(args.output_results_path, f"{args.task_type}_saprot_results.json")
+            os.path.join(
+                args.output_results_path, f"{args.task_type}_saprot_results.json"
+            )
         )
 
 
@@ -284,10 +300,14 @@ if __name__ == "__main__":
         choices=[
             "active-site-position-prediction",
             "active-site-categorie-prediction",
+            "direct-test-mcsa",  # 直接使用SwissProt E-RXN ASA训练的active-site-position-prediction模型测试MCSA测试集
         ],
         default="active-site-position-prediction",
         help="Choose a task",
     )
+    parser.add_argument(
+        "--structure_path", type=str, default="dataset/mcsa_fine_tune/structures"
+    )  # 只在direct-test-mcsa下起作用
 
     parser.add_argument(
         "--dataset_path",
