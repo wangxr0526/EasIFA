@@ -2,6 +2,7 @@
 import sys
 import torch
 import os
+import time
 sys.path.append('../../')
 from tqdm.auto import tqdm
 from collections import defaultdict
@@ -201,9 +202,11 @@ pdb_fnames = [x for x in os.listdir(esmfold_pdb_abspath) if x.endswith('.pdb')]
 
 
 esmfold_cmd = f'python {esmfold_script} -i {test_dataset_fasta_abspath} -o {esmfold_pdb_abspath}'
-
+esmfold_start_time = time.time()
 if len(pdb_fnames) != len(set(test_dataset['alphafolddb-id'])):
     subprocess.run(esmfold_cmd, shell=True)
+esmfold_use_time = time.time() - esmfold_start_time
+print(f'ESMfold inference use: {esmfold_use_time}s')
 
 
 # %%
