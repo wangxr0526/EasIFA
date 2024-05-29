@@ -32,6 +32,7 @@ from mysql.connector import Error
 from biotite.structure.io.pdb import PDBFile, get_structure
 from model_structure.enzyme_site_model import (
     EnzymeActiveSiteClsModel,
+    EnzymeActiveSiteESMModel,
     EnzymeActiveSiteModel,
 )
 
@@ -225,6 +226,7 @@ def get_structure_html_and_active_data(
     view.zoom(2.5, 600)
     return view.write_html(), active_data
 
+
 # def get_structure_html_and_active_data_fix(
 #     enzyme_structure_path,
 #     site_labels=None,
@@ -359,6 +361,7 @@ def get_structure_html_and_active_data(
 #     view.zoomTo()
 #     view.zoom(2.5, 600)  # 微调视图大小
 #     return view.write_html(), active_data
+
 
 class UniProtParser:
     def __init__(self, chebi_path, json_folder, rxn_folder, alphafolddb_folder):
@@ -496,7 +499,7 @@ class EasIFAInferenceAPI:
         device="cpu",
         model_checkpoint_path=default_ec_site_model_state_path,
         max_enzyme_aa_length=600,
-        pred_tolist=True
+        pred_tolist=True,
     ) -> None:
         self.max_enzyme_aa_length = max_enzyme_aa_length
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
@@ -589,7 +592,8 @@ class EasIFAInferenceAPI:
 
 class ECSiteBinInferenceAPI(EasIFAInferenceAPI):
     def __init__(
-        self, device="cpu", model_checkpoint_path=default_ec_site_model_state_path
+        self, device="cpu", model_checkpoint_path=default_ec_site_model_state_path,
+        pred_tolist=True
     ) -> None:
         model_state, model_args = read_model_state(
             model_save_path=model_checkpoint_path
@@ -597,9 +601,9 @@ class ECSiteBinInferenceAPI(EasIFAInferenceAPI):
         need_convert = model_args.get("need_convert", False)
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         if (model_checkpoint_path == default_ec_site_model_state_path) or need_convert:
-            self.convert_fn = lambda x: convert_fn(x)
+            self.convert_fn = lambda x: convert_fn(x, to_list=pred_tolist)
         else:
-            self.convert_fn = lambda x: x.tolist()
+            self.convert_fn = lambda x: x.tolist() if pred_tolist else x
         model = EnzymeActiveSiteModel(rxn_model_path=rxn_model_path)
 
         model.load_state_dict(model_state)
@@ -607,6 +611,74 @@ class ECSiteBinInferenceAPI(EasIFAInferenceAPI):
         model.to(self.device)
         model.eval()
         self.model = model
+
+
+class ECSiteSeqBinInferenceAPI(ECSiteBinInferenceAPI):
+    def __init__(
+        self,
+        device="cpu",
+        model_checkpoint_path=default_ec_site_model_state_path,
+        max_enzyme_aa_length=600,
+        pred_tolist=True,
+    ) -> None:
+        self.max_enzyme_aa_length = max_enzyme_aa_length
+        model_state, model_args = read_model_state(
+            model_save_path=model_checkpoint_path
+        )
+        need_convert = model_args.get("need_convert", False)
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        if (model_checkpoint_path == default_ec_site_model_state_path) or need_convert:
+            self.convert_fn = lambda x: convert_fn(x, to_list=pred_tolist)
+        else:
+            self.convert_fn = lambda x: x.tolist() if pred_tolist else x
+        model = EnzymeActiveSiteESMModel(rxn_model_path=rxn_model_path)
+
+        model.load_state_dict(model_state)
+        print("Loaded checkpoint from {}".format(model_checkpoint_path))
+        model.to(self.device)
+        model.eval()
+        self.model = model
+
+    def _calculate_one_data(self, rxn, aa_sequence):
+        data_package = self._preprocess_one(rxn_smiles=rxn, aa_sequence=aa_sequence)
+        self.caculated_sequence = data_package["protein_sequence"]
+        if len(self.caculated_sequence) > self.max_enzyme_aa_length:
+            return None
+        batch_one_data = enzyme_rxn_collate_extract([data_package])
+        return batch_one_data
+
+    def _preprocess_one(self, rxn_smiles, aa_sequence):
+
+        protein = MyProtein.from_sequence(aa_sequence)
+        # protein = data.Protein.from_pdb(enzyme_structure_path)
+        reaction_features = self._calculate_rxn_features(rxn_smiles)
+        rxn_fclass = ReactionFeatures(reaction_features)
+        if hasattr(protein, "residue_feature"):
+            with protein.residue():
+                protein.residue_feature = protein.residue_feature.to_dense()
+        item = {
+            "protein_graph": protein,
+            "reaction_graph": rxn_fclass,
+            "protein_sequence": aa_sequence,
+        }
+        return item
+
+    @torch.no_grad()
+    def inference(self, rxn, aa_sequence):
+        batch_one_data = self._calculate_one_data(rxn, aa_sequence)
+        if batch_one_data is None:
+            return
+
+        if self.device.type == "cuda":
+            batch_one_data = cuda(batch_one_data, device=self.device)
+        try:
+            protein_node_logic, _ = self.model(batch_one_data)
+        except:
+            print(f"erro in this data")
+            return
+        pred = torch.argmax(protein_node_logic.softmax(-1), dim=-1)
+        pred = self.convert_fn(pred)
+        return pred
 
 
 class UniProtParserMysql:
@@ -776,23 +848,31 @@ if __name__ == "__main__":
     # # query_results_df = unprot_parser.parse_from_uniprotkb_query('F6KCZ5')
     # query_results_df, msg = unprot_parser.parse_from_uniprotkb_query('Q05BL1')
 
-    unprot_mysql_parser = UniProtParserMysql(mysql_config_path="./mysql_config.json")
-    query_data, predicted_results, is_new_data = unprot_mysql_parser.query_from_uniprot(
-        "Q05BL1"
+    # unprot_mysql_parser = UniProtParserMysql(mysql_config_path="./mysql_config.json")
+    # query_data, predicted_results, is_new_data = unprot_mysql_parser.query_from_uniprot(
+    #     "Q05BL1"
+    # )
+
+    # uniprot_id, query_dataframe, message, calculated_sequence = query_data
+    # if message != "Good":
+    #     predicted_results = []
+    #     if is_new_data:
+    #         unprot_mysql_parser.insert_to_local_database(
+    #             uniprot_id=uniprot_id,
+    #             query_dataframe=query_dataframe,
+    #             message=message,
+    #             calculated_sequence=calculated_sequence,
+    #             predicted_results=predicted_results,
+    #         )
+    # elif message == "Good":
+    #     # prediction
+    #     pass
+    # pass
+
+    easifa_seq_predictor = ECSiteSeqBinInferenceAPI(
+        model_checkpoint_path="../checkpoints/enzyme_site_no_gearnet_prediction_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-20-05-13-33/global_step_24000"
     )
 
-    uniprot_id, query_dataframe, message, calculated_sequence = query_data
-    if message != "Good":
-        predicted_results = []
-        if is_new_data:
-            unprot_mysql_parser.insert_to_local_database(
-                uniprot_id=uniprot_id,
-                query_dataframe=query_dataframe,
-                message=message,
-                calculated_sequence=calculated_sequence,
-                predicted_results=predicted_results,
-            )
-    elif message == "Good":
-        # prediction
-        pass
-    pass
+    rxn = "CC(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP(=O)([O-])OP(=O)([O-])OC[C@H]1O[C@@H](n2cnc3c(N)ncnc32)[C@H](O)[C@@H]1OP(=O)([O-])[O-].O.O=CC(=O)[O-]>>CC(C)(COP(=O)([O-])OP(=O)([O-])OC[C@H]1O[C@@H](n2cnc3c(N)ncnc32)[C@H](O)[C@@H]1OP(=O)([O-])[O-])[C@@H](O)C(=O)NCCC(=O)NCCS.O=C([O-])C[C@H](O)C(=O)[O-].[H+]"
+    aa_sequence = "MTEQATTTDELAFTRPYGEQEKQILTAEAVEFLTELVTHFTPQRNKLLAARIQQQQDIDNGTLPDFISETASIRDADWKIRGIPADLEDRRVEITGPVERKMVINALNANVKVFMADFEDSLAPDWNKVIDGQINLRDAVNGTISYTNEAGKIYQLKPNPAVLICRVRGLHLPEKHVTWRGEAIPGSLFDFALYFFHNYQALLAKGSGPYFYLPKTQSWQEAAWWSEVFSYAEDRFNLPRGTIKATLLIETLPAVFQMDEILHALRDHIVGLNCGRWDYIFSYIKTLKNYPDRVLPDRQAVTMDKPFLNAYSRLLIKTCHKRGAFAMGGMAAFIPSKDEEHNNQVLNKVKADKSLEANNGHDGTWIAHPGLADTAMAVFNDILGSRKNQLEVMREQDAPITADQLLAPCDGERTEEGMRANIRVAVQYIEAWISGNGCVPIYGLMEDAATAEISRTSIWQWIHHQKTLSNGKPVTKALFRQMLGEEMKVIASELGEERFSQGRFDDAARLMEQITTSDELIDFLTLPGYRLLA"
+    easifa_seq_predictor.inference(rxn=rxn, aa_sequence=aa_sequence)

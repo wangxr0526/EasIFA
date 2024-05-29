@@ -259,7 +259,7 @@ class EnzymeActiveSiteESMModel(EnzymeActiveSiteModel):
         super(EnzymeActiveSiteModel, self).__init__()
         self.from_scratch = from_scratch
 
-        self.enzyme_attn_model = EnzymeESMNetwork(use_graph_construction_model=True)
+        self.enzyme_attn_model = EnzymeESMNetwork(use_graph_construction_model=False)
 
         self.rxn_attn_model = self._load_rxn_attn_model(rxn_model_path)
 
