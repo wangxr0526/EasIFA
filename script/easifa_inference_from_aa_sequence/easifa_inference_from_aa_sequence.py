@@ -1,4 +1,5 @@
 # %%
+# %%
 import sys
 import torch
 import os
@@ -31,9 +32,15 @@ from data_loaders.enzyme_rxn_dataloader import get_rxn_smiles
 from common.utils import calculate_scores_vbin_test
 
 
+
+# %%
 # %%
 device = 'cuda:0'
 use_esmfold = False
+optimize = True
+
+
+
 ECSitePred = ECSiteBinInferenceAPI(
     model_checkpoint_path="../../checkpoints/enzyme_site_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-24-02-53-35/global_step_92000/",
     device=device,
@@ -49,6 +56,8 @@ ECSiteSeqPred = ECSiteSeqBinInferenceAPI(
 # )
 
 
+
+# %%
 # %%
 def calculate_active_sites(site_label, sequence_length):
     site_label = eval(site_label)  # Note: Site label starts from 1
@@ -141,6 +150,8 @@ def inference_and_scoring(test_dataset: pd.DataFrame, esmfold_pdb_path):
     )
 
 
+
+# %%
 # %%
 
 
@@ -210,6 +221,8 @@ def get_query_database(path, fasta_path, pdb_file_path):
     return database_df
 
 
+
+# %%
 # %%
 dataset_path = "../../dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100"
 blast_database_path = "../../dataset/raw_dataset/uniprot/uniprot_sprot.fasta"
@@ -228,12 +241,16 @@ test_dataset = test_dataset.loc[test_dataset["is_valid"]].reset_index(drop=True)
 test_dataset
 
 
+
+# %%
 # %%
 import subprocess
 
 esmfold_script = os.path.abspath("../esmfold_inference.py")
+optimize_script = os.path.abspath("../optimize_esmfold_pdbs.sh")
 test_dataset_fasta_abspath = os.path.abspath(test_dataset_fasta_path)
 esmfold_pdb_abspath = os.path.abspath(esmfold_pdb_path)
+esmfold_optimzed_pdb_abspath = os.path.abspath("./esmfold_optimzed_pdb")
 
 pdb_fnames = [x for x in os.listdir(esmfold_pdb_abspath) if x.endswith(".pdb")]
 
@@ -242,6 +259,8 @@ esmfold_cmd = (
     f"python {esmfold_script} -i {test_dataset_fasta_abspath} -o {esmfold_pdb_abspath}"
 )
 
+optimize_cmd = f'{optimize_script} {esmfold_pdb_abspath} {esmfold_optimzed_pdb_abspath}'
+
 if use_esmfold:
     esmfold_start_time = time.time()
     if len(pdb_fnames) != len(set(test_dataset["alphafolddb-id"])):
@@ -249,6 +268,18 @@ if use_esmfold:
     esmfold_use_time = time.time() - esmfold_start_time
     print(f"ESMfold inference use: {esmfold_use_time}s")
 
+if optimize:
+    optimize_start_time = time.time()
+    subprocess.run(optimize_cmd, shell=True)
+    optimize_use_time = time.time() - optimize_start_time
+    print(f"Optimize ESMfold pdb use: {optimize_use_time}s")
 
 # %%
-inference_and_scoring(test_dataset=test_dataset, esmfold_pdb_path=esmfold_pdb_abspath)
+
+
+# %%
+# %%
+inference_and_scoring(test_dataset=test_dataset, esmfold_pdb_path=esmfold_optimzed_pdb_abspath)
+
+
+
