@@ -31,3 +31,5 @@ script/baseline_methods/sitemap_workspace
 script/baseline_methods/deepfri_workspace
 results
 script/baseline_methods/baseline_results
+script/easifa_inference_from_aa_sequence/esmfold_pdb
+!script/easifa_inference_from_aa_sequence
