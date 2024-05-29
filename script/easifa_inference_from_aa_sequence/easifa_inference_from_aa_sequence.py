@@ -30,9 +30,9 @@ from common.utils import calculate_scores_vbin_test
 
 # %%
 ECSitePred = EasIFAInferenceAPI(model_checkpoint_path=retrain_ec_site_model_state_path, pred_tolist=False)
-unprot_mysql_parser = UniProtParserMysql(
-    mysql_config_path="../../webapp/mysql_config.json"
-)
+# unprot_mysql_parser = UniProtParserMysql(
+#     mysql_config_path="../../webapp/mysql_config.json"
+# )
 
 # %%
 def calculate_active_sites(site_label, sequence_length):
