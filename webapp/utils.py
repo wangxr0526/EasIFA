@@ -593,8 +593,10 @@ class EasIFAInferenceAPI:
 class ECSiteBinInferenceAPI(EasIFAInferenceAPI):
     def __init__(
         self, device="cpu", model_checkpoint_path=default_ec_site_model_state_path,
+        max_enzyme_aa_length=600,
         pred_tolist=True
     ) -> None:
+        self.max_enzyme_aa_length = max_enzyme_aa_length
         model_state, model_args = read_model_state(
             model_save_path=model_checkpoint_path
         )

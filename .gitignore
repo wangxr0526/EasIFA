@@ -33,3 +33,6 @@ results
 script/baseline_methods/baseline_results
 script/easifa_inference_from_aa_sequence/esmfold_pdb
 !script/easifa_inference_from_aa_sequence
+script/easifa_inference_from_aa_sequence/leap.log
+script/easifa_inference_from_aa_sequence/mdinfo
+script/easifa_inference_from_aa_sequence/esmfold_optimzed_pdb

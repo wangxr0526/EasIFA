@@ -4,6 +4,7 @@ import sys
 import torch
 import os
 import time
+import re
 
 sys.path.append("../../")
 from tqdm.auto import tqdm
@@ -32,17 +33,15 @@ from data_loaders.enzyme_rxn_dataloader import get_rxn_smiles
 from common.utils import calculate_scores_vbin_test
 
 
-
 # %%
 # %%
-device = 'cuda:0'
+device = "cuda:0"
 use_esmfold = False
-optimize = True
-
+optimize = False
 
 
 ECSitePred = ECSiteBinInferenceAPI(
-    model_checkpoint_path="../../checkpoints/enzyme_site_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-24-02-53-35/global_step_92000/",
+    model_checkpoint_path="../../checkpoints/enzyme_site_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-24-02-53-35/global_step_92000",
     device=device,
     pred_tolist=False,
 )
@@ -54,7 +53,6 @@ ECSiteSeqPred = ECSiteSeqBinInferenceAPI(
 # unprot_mysql_parser = UniProtParserMysql(
 #     mysql_config_path="../../webapp/mysql_config.json"
 # )
-
 
 
 # %%
@@ -94,28 +92,43 @@ def inference_and_scoring(test_dataset: pd.DataFrame, esmfold_pdb_path):
         aa_sequence = row["aa_sequence"]
         gts = calculate_active_sites(site_label, len(aa_sequence))
 
-        enzyme_structure_path = os.path.join(esmfold_pdb_path, f"{uniprot_id}.pdb")
+        enzyme_structure_path = os.path.join(
+            esmfold_pdb_path, f"{uniprot_id}_minimized.pdb"
+        )
         try:
             pred_active_labels = ECSitePred.inference(
                 rxn, enzyme_structure_path
             )  # 默认输出一个样本的结果
+            (
+                accuracy,
+                precision,
+                specificity,
+                overlap_score,
+                fpr,
+                f1_scores,
+                mcc_scores,
+            ) = calculate_scores_vbin_test(
+                pred_active_labels, gts=gts, num_residues=[len(aa_sequence)]
+            )
         except:
-            print(f'PDB file unavailble for {uniprot_id}, using sequence model instead.')
+            print(
+                f"PDB file unavailble for {uniprot_id}, using sequence model instead."
+            )
             pred_active_labels = ECSiteSeqPred.inference(
                 rxn, aa_sequence
             )  # 当PDB仍然不可用时，使用基于序列的模型进行预测
+            (
+                accuracy,
+                precision,
+                specificity,
+                overlap_score,
+                fpr,
+                f1_scores,
+                mcc_scores,
+            ) = calculate_scores_vbin_test(
+                pred_active_labels, gts=gts, num_residues=[len(aa_sequence)]
+            )
 
-        (
-            accuracy,
-            precision,
-            specificity,
-            overlap_score,
-            fpr,
-            f1_scores,
-            mcc_scores,
-        ) = calculate_scores_vbin_test(
-            pred_active_labels, gts=gts, num_residues=[len(aa_sequence)]
-        )
         accuracy_list += accuracy
         precision_list += precision
         specificity_list += specificity
@@ -135,7 +148,7 @@ def inference_and_scoring(test_dataset: pd.DataFrame, esmfold_pdb_path):
                 sum(mcc_scores_list) / len(mcc_scores_list),
             )
         )
-        print(f"Get {len(overlap_scores_list)} results")
+    print(f"Get {len(overlap_scores_list)} results")
 
     print(
         "Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}".format(
@@ -148,7 +161,6 @@ def inference_and_scoring(test_dataset: pd.DataFrame, esmfold_pdb_path):
             sum(mcc_scores_list) / len(mcc_scores_list),
         )
     )
-
 
 
 # %%
@@ -221,7 +233,6 @@ def get_query_database(path, fasta_path, pdb_file_path):
     return database_df
 
 
-
 # %%
 # %%
 dataset_path = "../../dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100"
@@ -241,17 +252,15 @@ test_dataset = test_dataset.loc[test_dataset["is_valid"]].reset_index(drop=True)
 test_dataset
 
 
-
 # %%
 # %%
 import subprocess
 
 esmfold_script = os.path.abspath("../esmfold_inference.py")
-optimize_script = os.path.abspath("../optimize_esmfold_pdbs.sh")
 test_dataset_fasta_abspath = os.path.abspath(test_dataset_fasta_path)
 esmfold_pdb_abspath = os.path.abspath(esmfold_pdb_path)
 esmfold_optimzed_pdb_abspath = os.path.abspath("./esmfold_optimzed_pdb")
-
+os.makedirs(esmfold_optimzed_pdb_abspath, exist_ok=True)
 pdb_fnames = [x for x in os.listdir(esmfold_pdb_abspath) if x.endswith(".pdb")]
 
 
@@ -259,7 +268,6 @@ esmfold_cmd = (
     f"python {esmfold_script} -i {test_dataset_fasta_abspath} -o {esmfold_pdb_abspath}"
 )
 
-optimize_cmd = f'{optimize_script} {esmfold_pdb_abspath} {esmfold_optimzed_pdb_abspath}'
 
 if use_esmfold:
     esmfold_start_time = time.time()
@@ -268,9 +276,51 @@ if use_esmfold:
     esmfold_use_time = time.time() - esmfold_start_time
     print(f"ESMfold inference use: {esmfold_use_time}s")
 
+
+def extract_leap_info(log_text):
+    # 使用正则表达式匹配错误、警告和注意的数量
+    match = re.search(
+        r"Exiting LEaP: Errors = (\d+); Warnings = (\d+); Notes = (\d+).", log_text
+    )
+    if match:
+        errors, warnings, notes = map(int, match.groups())
+        return errors, warnings, notes
+    else:
+        return None
+
+
+def minimize_use_amber(
+    input_pdb_file, output_path, AMBERHOME="/home/xiaoruiwang/software/amber20"
+):
+    is_success = False
+    abs_input_pdb_path = os.path.abspath(input_pdb_file)
+    abs_output_path = os.path.abspath(output_path)
+    pdb_name = os.path.split(abs_input_pdb_path)[-1].split(".")[0]
+    minimize_command = f"../../dataset_preprocess/minimize_script_folder/minimize_protein.sh {abs_input_pdb_path} {abs_output_path} {AMBERHOME}"
+    if not os.path.exists(os.path.join(output_path, f"{pdb_name}_minimized.pdb")):
+        completed_process = subprocess.run(minimize_command, shell=True)
+        if completed_process.returncode != 0:
+            print("Error: The command did not run successfully!")
+
+    # 抓错误
+
+    with open(os.path.join(output_path, f"{pdb_name}_minimized_tleap.log"), "r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            info = extract_leap_info(line)
+            if info:
+                errors, warnings, notes = info
+                if errors == 0:
+                    is_success = True
+
+    return abs_output_path, is_success
+
+
 if optimize:
     optimize_start_time = time.time()
-    subprocess.run(optimize_cmd, shell=True)
+    for fname in tqdm(pdb_fnames, total=len(pdb_fnames), desc="Optim"):
+        abs_input_path = os.path.join(esmfold_pdb_abspath, fname)
+        _, is_success = minimize_use_amber(abs_input_path, esmfold_optimzed_pdb_abspath)
     optimize_use_time = time.time() - optimize_start_time
     print(f"Optimize ESMfold pdb use: {optimize_use_time}s")
 
@@ -279,7 +329,6 @@ if optimize:
 
 # %%
 # %%
-inference_and_scoring(test_dataset=test_dataset, esmfold_pdb_path=esmfold_optimzed_pdb_abspath)
-
-
-
+inference_and_scoring(
+    test_dataset=test_dataset, esmfold_pdb_path=esmfold_optimzed_pdb_abspath
+)
