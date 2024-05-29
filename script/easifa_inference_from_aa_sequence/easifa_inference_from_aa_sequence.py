@@ -24,6 +24,7 @@ from webapp.utils import (
     cmd,
 )
 from data_loaders.rxn_dataloader import process_reaction
+from data_loaders.enzyme_rxn_dataloader import get_rxn_smiles
 from common.utils import calculate_scores_vbin_test
 
 
@@ -51,7 +52,18 @@ def calculate_active_sites(site_label, sequence_length):
     return active_site
 
 def inference_and_scoring(test_dataset:pd.DataFrame, esmfold_pdb_path):
-    for idx, row in tqdm(test_dataset.iterrows(), total=len(test_dataset), desc='Testing'):
+
+    accuracy_list = []
+    precision_list = []
+    specificity_list = []
+    overlap_scores_list = []
+    false_positive_rates_list = []
+    f1_scores_list = []
+    mcc_scores_list = []
+
+    pbar = tqdm(test_dataset.iterrows(), total=len(test_dataset), desc='Testing')
+
+    for idx, row in pbar:
         uniprot_id = row['alphafolddb-id']
         rxn = row['canonicalize_rxn_smiles']
         site_label = row['site_labels']
@@ -61,7 +73,47 @@ def inference_and_scoring(test_dataset:pd.DataFrame, esmfold_pdb_path):
         enzyme_structure_path = os.path.join(esmfold_pdb_path, f'{uniprot_id}.pdb')
         pred_active_labels = ECSitePred.inference(rxn, enzyme_structure_path)   # 默认输出一个样本的结果
 
-        calculate_scores_vbin_test(pred_active_labels, gts=gts, num_residues=len(aa_sequence))
+        (
+        accuracy,
+        precision,
+        specificity,
+        overlap_score,
+        fpr,
+        f1_scores,
+        mcc_scores,
+                ) = calculate_scores_vbin_test(pred_active_labels, gts=gts, num_residues=len(aa_sequence))
+        accuracy_list += accuracy
+        precision_list += precision
+        specificity_list += specificity
+        overlap_scores_list += overlap_score
+        false_positive_rates_list += fpr
+        f1_scores_list += f1_scores
+        mcc_scores_list += mcc_scores
+
+        pbar.set_description(
+                "Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}".format(
+                    sum(accuracy_list) / len(accuracy_list),
+                    sum(precision_list) / len(precision_list),
+                    sum(specificity_list) / len(specificity_list),
+                    sum(overlap_scores_list) / len(overlap_scores_list),
+                    sum(false_positive_rates_list) / len(false_positive_rates_list),
+                    sum(f1_scores_list) / len(f1_scores_list),
+                    sum(mcc_scores_list) / len(mcc_scores_list),
+                )
+            )
+        print(f"Get {len(overlap_scores_list)} results")
+    
+    print(
+        "Accuracy: {:.4f}, Precision: {:.4f}, Specificity: {:.4f}, Overlap Score: {:.4f}, False Positive Rate: {:.4f}, F1: {:.4f}, MCC: {:.4f}".format(
+            sum(accuracy_list) / len(accuracy_list),
+            sum(precision_list) / len(precision_list),
+            sum(specificity_list) / len(specificity_list),
+            sum(overlap_scores_list) / len(overlap_scores_list),
+            sum(false_positive_rates_list) / len(false_positive_rates_list),
+            sum(f1_scores_list) / len(f1_scores_list),
+            sum(mcc_scores_list) / len(mcc_scores_list),
+        )
+    )
         
 
 
@@ -70,8 +122,6 @@ def inference_and_scoring(test_dataset:pd.DataFrame, esmfold_pdb_path):
     
 
 # %%
-
-
 
 def get_structure_sequence(pdb_file):
     try:
@@ -104,8 +154,11 @@ def multiprocess_structure_check(df, nb_workers, pdb_file_path):
 
 def get_query_database(path, fasta_path, pdb_file_path):
     database_df = pd.read_csv(path)
-    database_df = database_df[['alphafolddb-id', 'aa_sequence','site_labels', 'site_types']]
+    database_df = database_df[['alphafolddb-id', 'aa_sequence','site_labels', 'site_types', 'reaction']]
     database_df['alphafolddb-id'] = database_df['alphafolddb-id'].apply(lambda x:x.replace(';',''))
+    database_df["rxn_smiles"] = database_df["reaction"].apply(
+                lambda x: get_rxn_smiles(x)
+            )
     database_df['canonicalize_rxn_smiles'] = database_df["rxn_smiles"].apply(
             lambda x: process_reaction(x)
         )
