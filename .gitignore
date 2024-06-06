@@ -36,3 +36,7 @@ script/easifa_inference_from_aa_sequence/esmfold_pdb
 script/easifa_inference_from_aa_sequence/leap.log
 script/easifa_inference_from_aa_sequence/mdinfo
 script/easifa_inference_from_aa_sequence/esmfold_optimzed_pdb
+!script/scoring_results.ipynb
+!script/TIM_barrel_study/tim_barrel_study.ipynb
+!script/TIM_barrel_study/tim_barrel_detect.py
+!dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100/test_dataset_with_similarity_idx.csv

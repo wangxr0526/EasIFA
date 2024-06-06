@@ -80,7 +80,6 @@ def main(args):
         rxn_model_path=args.pretrained_rxn_attn_model_path,
         use_saprot_esm=args.use_saprot,
     )
-
     model_state, model_args = read_model_state(model_save_path=args.checkpoint)
     need_convert = model_args.get("need_convert", False)
     model.load_state_dict(model_state)
