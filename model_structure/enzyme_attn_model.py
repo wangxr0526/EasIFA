@@ -419,14 +419,13 @@ class EnzymeFusionNetworkWrapper(nn.Module):
             graph = self.graph_construction_model(graph)
         output = self.model(graph, graph.node_feature.float())
         return output
-    
+
+
 class EnzymeESMWrapper(nn.Module):
     def __init__(self, use_graph_construction_model=True) -> None:
         super(EnzymeESMWrapper, self).__init__()
 
         sequence_model = ESM(path="~/.cache/torch/hub/checkpoints", model="ESM-2-650M")
-
-
 
         fusion_model = EnzymeFusionNetwork(
             sequence_model=sequence_model, structure_model=None
@@ -457,13 +456,20 @@ class EnzymeESMWrapper(nn.Module):
         output = self.model(graph, graph.node_feature.float())
         return output
 
+
 class EnzymeSaProtFusionNetworkWrapper(nn.Module):
     def __init__(self, use_graph_construction_model=True) -> None:
         super(EnzymeSaProtFusionNetworkWrapper, self).__init__()
         saprot_state_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "../checkpoints/SaProt_650M_AF2")
         )
-        assert os.path.exists(saprot_state_path)
+        assert os.path.exists(
+            saprot_state_path
+        ), """
+Please download the original weights of SaProt from https://huggingface.co/westlake-repl/SaProt_650M_AF2/tree/main and place them in {}.
+""".format(
+            saprot_state_path
+        )
         sequence_model = SaProtESM(path=saprot_state_path, model="SaProt_650M_AF2")
 
         structure_model = GearNet(

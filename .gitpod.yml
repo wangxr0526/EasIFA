@@ -9,7 +9,7 @@ tasks:
       mkdir -p ~/.cache/torch/hub/checkpoints &&
       wget https://dl.fbaipublicfiles.com/fair-esm/models/esm2_t33_650M_UR50D.pt -O ~/.cache/torch/hub/checkpoints/esm2_t33_650M_UR50D.pt &&
       gdown https://drive.google.com/uc?id=1kLIx2h6kPk6OvRVPWWqJvoKAYVvBx80x -O /workspace/miniconda3/envs/easifa_env.tar.gz &&
-      gdown https://drive.google.com/uc?id=1pf0pMNELXYR9yU_w3ZkJL0rjbjqHBQaB -O /workspace/EasIFA/checkpoints.zip &&
+      gdown https://drive.google.com/uc?id=1ra11M4PpIalKx9ZZP-mrgj13IuFakjz3 -O /workspace/EasIFA/checkpoints.zip &&
       unzip checkpoints.zip &&
       mkdir /workspace/miniconda3/envs/easifa_env &&
       tar -xvf /workspace/miniconda3/envs/easifa_env.tar.gz -C /workspace/miniconda3/envs/easifa_env &&

@@ -16,8 +16,10 @@ The high-definition images from the paper can be found at [`paper_figures`](./pa
 - [Python Dependencies](#python-dependencies)
 - [Installation Guide](#installation-guide)
 - [Reproduce Results](#reproduce-results)
-    - [Download Checkpoints and Dataset](#1-download-checkpoints-and-dataset)
-    - [Test EasIFA](#2-test-easifa)
+    - [Scoring Directly from the Downloaded Results Files](#1-scoring-directly-from-the-downloaded-results-files)
+    - [Download Checkpoints and Dataset](#2-download-checkpoints-and-dataset)
+    - [Test EasIFA](#3-test-easifa)
+
 - [Cite Us](#cite-us)
 
 ## Publication
@@ -59,7 +61,10 @@ conda activate easifa_env
 
 
 ## Reproduce Results
-### **[1]** Download Checkpoints and Dataset
+### **[1]** Scoring Directly from the Downloaded Results Files
+Open the Jupyter notebook file [`script/scoring_results.ipynb`](script/scoring_results.ipynb), follow the links within to download the result files and place them in the corresponding paths. Run the cells sequentially to obtain the results reported in the paper.
+
+### **[2]** Download Checkpoints and Dataset
 
 Running the following command can download the model's checkpoints and datasets (including the PDB structures in the dataset).
 
@@ -68,35 +73,69 @@ python download_data.py
 ```
 The links correspond to the paths of the zip files as follows:
 ```
-https://drive.google.com/uc?id=1pf0pMNELXYR9yU_w3ZkJL0rjbjqHBQaB    --->    checkpoints.zip  (7.1Gb)
+https://drive.google.com/uc?id=1ra11M4PpIalKx9ZZP-mrgj13IuFakjz3    --->    checkpoints.zip  (14Gb)
 https://drive.google.com/uc?id=15c-KoZ47TpF9_qyQfJiY67gcgVZ8N5WR    --->    dataset.zip      
 ```
 
-### **[2]** Test EasIFA
+### **[3]** Test EasIFA
 Test in the SwissProt E-RXN ASA dataset:
 
 Active site position prediction task:
 
+EasIFA-ESM-bin:
 ```
 python main_test.py --gpu CUDA_ID \
                     --task_type active-site-position-prediction \
                     --dataset_path dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100 \
-                    --checkpoint checkpoints/enzyme_site_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2023-06-07-16-24-32/global_step_27000
+                    --checkpoint checkpoints/enzyme_site_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-24-02-53-35/global_step_92000
 ```
+EasIFA-SaProt-bin:
+
+```
+python main_test_saprot.py --gpu CUDA_ID \
+                    --task_type active-site-position-prediction \
+                    --dataset_path dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100 \
+                    --checkpoint checkpoints/enzyme_site_prediction_saprod_embding_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-16-10-25-16/global_step_14000
+```
+EasIFA-NG-bin:
+```
+python main_test.py --gpu CUDA_ID \
+                    --task_type ablation-experiment-3 \
+                    --dataset_path dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100 \
+                    --checkpoint checkpoints/enzyme_site_no_gearnet_prediction_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-20-05-13-33/global_step_24000
+```
+
 Active site categorie prediction task
 
+EasIFA-ESM-multi:
 ```
 python main_test.py --gpu CUDA_ID \
                     --task_type active-site-categorie-prediction \
                     --dataset_path dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100 \
-                    --checkpoint checkpoints/enzyme_site_type_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2023-06-14-11-04-55/global_step_70000
+                    --checkpoint checkpoints/enzyme_site_type_predition_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-26-02-48-38/global_step_86000
+```
+EasIFA-SaProt-multi:
+```
+python main_test_saprot.py --gpu CUDA_ID \
+                    --task_type active-site-categorie-prediction \
+                    --dataset_path dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100 \
+                    --checkpoint checkpoints/enzyme_site_type_prediction_saprod_embding_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-19-20-00-00/global_step_72000
 ```
 Test in the MCSA E-RXN CSA dataset:
+EasIFA-ESM-bin
 ```
 python test_knowledge_transfer_learning.py --gpu CUDA_ID \
                                             --dataset_path dataset/mcsa_fine_tune/normal_mcsa \
                                             --structure_path dataset/mcsa_fine_tune/structures \
                                             --checkpoint checkpoints/enzyme_site_type_predition_model/checkpoints/enzyme_site_predition_model_finetune_with_mcsa/train_in_normal_mcsa_at_2023-10-06-09-48-04/global_step_37200
+```
+EasIFA-SaProt-bin
+```
+python test_knowledge_transfer_learning.py --gpu CUDA_ID \
+                                            --dataset_path dataset/mcsa_fine_tune/normal_mcsa \
+                                            --structure_path dataset/mcsa_fine_tune/structures \
+                                            --checkpoint checkpoints/enzyme_site_predition_saprot_embding_model_finetune_with_mcsa/train_in_normal_mcsa_at_2024-05-23-08-05-31/global_step_19400 \
+                                            --use_saprot
 ```
 ## Cite Us
 
