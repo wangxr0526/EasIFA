@@ -122,6 +122,7 @@ python main_test_saprot.py --gpu CUDA_ID \
                     --checkpoint checkpoints/enzyme_site_type_prediction_saprod_embding_model/train_in_uniprot_ecreact_cluster_split_merge_dataset_limit_100_at_2024-05-19-20-00-00/global_step_72000
 ```
 Test in the MCSA E-RXN CSA dataset:
+
 EasIFA-ESM-bin
 ```
 python test_knowledge_transfer_learning.py --gpu CUDA_ID \
