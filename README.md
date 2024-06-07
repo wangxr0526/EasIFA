@@ -128,7 +128,7 @@ EasIFA-ESM-bin
 python test_knowledge_transfer_learning.py --gpu CUDA_ID \
                                             --dataset_path dataset/mcsa_fine_tune/normal_mcsa \
                                             --structure_path dataset/mcsa_fine_tune/structures \
-                                            --checkpoint checkpoints/enzyme_site_type_predition_model/checkpoints/enzyme_site_predition_model_finetune_with_mcsa/train_in_normal_mcsa_at_2023-10-06-09-48-04/global_step_37200
+                                            --checkpoint checkpoints/enzyme_site_predition_model_finetune_with_mcsa/train_in_normal_mcsa_at_2023-10-06-09-48-04/global_step_37200
 ```
 EasIFA-SaProt-bin
 ```
