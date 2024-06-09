@@ -84,6 +84,12 @@ def main(args):
         )
     _, _, test_dataset = dataset.split()
 
+    if args.test_dataset_similarity_index_file == "" and args.output_score:
+        dataset_df = test_dataset.dataset.dataset_df
+        test_df_from_dataset = dataset_df.loc[
+            dataset_df["dataset_flag"] == "test"
+        ].reset_index(drop=True)
+
     if args.test_dataset_similarity_index_file != "":
         test_df_with_similarity_index = pd.read_csv(
             args.test_dataset_similarity_index_file
@@ -360,7 +366,10 @@ if __name__ == "__main__":
     parser.add_argument("--test_remove_aegan_train", type=bool, default=False)
 
     parser.add_argument("--test_dataset_similarity_index_file", type=str, default="")
-    parser.add_argument("--output_score", type=bool, default=False)
+    parser.add_argument(
+        "--output_score",
+        action="store_true",
+    )
     parser.add_argument("--output_results_path", type=str, default="results")
 
     args = parser.parse_args()

@@ -53,16 +53,16 @@ def main(args):
         )
     elif args.task_type == "direct-test-mcsa":
         dataset = EnzymeReactionSaProtDataset(
-                path=args.dataset_path,
-                structure_path=args.structure_path,
-                save_precessed=False,
-                debug=False,
-                verbose=1,
-                protein_max_length=1000,
-                lazy=True,
-                nb_workers=12,
-                foldseek_bin_path=foldseek_bin_path,
-            )
+            path=args.dataset_path,
+            structure_path=args.structure_path,
+            save_precessed=False,
+            debug=False,
+            verbose=1,
+            protein_max_length=1000,
+            lazy=True,
+            nb_workers=12,
+            foldseek_bin_path=foldseek_bin_path,
+        )
     else:
         dataset = EnzymeReactionSaProtDataset(
             path=args.dataset_path,
@@ -74,6 +74,12 @@ def main(args):
             foldseek_bin_path=foldseek_bin_path,
         )
     _, _, test_dataset = dataset.split()
+
+    if args.test_dataset_similarity_index_file == "" and args.output_score:
+        dataset_df = test_dataset.dataset.dataset_df
+        test_df_from_dataset = dataset_df.loc[
+            dataset_df["dataset_flag"] == "test"
+        ].reset_index(drop=True)
 
     if args.test_dataset_similarity_index_file != "":
         test_df_with_similarity_index = pd.read_csv(
@@ -343,7 +349,10 @@ if __name__ == "__main__":
     parser.add_argument("--test_remove_aegan_train", type=bool, default=False)
 
     parser.add_argument("--test_dataset_similarity_index_file", type=str, default="")
-    parser.add_argument("--output_score", type=bool, default=False)
+    parser.add_argument(
+        "--output_score",
+        action="store_true",
+    )
     parser.add_argument("--output_results_path", type=str, default="results")
 
     args = parser.parse_args()

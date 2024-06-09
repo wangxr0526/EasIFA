@@ -68,6 +68,12 @@ def main(args):
         args.collate_fn = enzyme_rxn_collate_extract
     _, _, test_dataset = dataset.split()
 
+    if args.output_score:
+        dataset_df = test_dataset.dataset.dataset_df
+        test_df_from_dataset = dataset_df.loc[
+            dataset_df["dataset_flag"] == "test"
+        ].reset_index(drop=True)
+
     test_dataloader = torch_data.DataLoader(
         test_dataset,
         batch_size=args.batch_size,
@@ -90,6 +96,9 @@ def main(args):
     node_correct_cnt = 0
     node_cnt = 0
 
+    predict_active_prob_list = []
+    predict_active_label_list = []
+
     accuracy_list = []
     precision_list = []
     specificity_list = []
@@ -108,15 +117,20 @@ def main(args):
             except:
                 print(f"erro in batch: {batch_id}")
                 continue
-
+            protein_node_logic: torch.Tensor
             targets = batch["targets"].long()
             if not is_valid_outputs(protein_node_logic, targets):
                 print(f"erro in batch: {batch_id}")
                 continue
+            protein_node_active_prob = protein_node_logic.softmax(-1)
+            pred = torch.argmax(protein_node_active_prob, dim=-1)
 
-            pred = torch.argmax(protein_node_logic.softmax(-1), dim=-1)
             if need_convert:
                 pred = convert_fn(pred, to_list=False)
+
+            if args.output_score:
+                predict_active_prob_list.append(protein_node_active_prob.tolist())
+                predict_active_label_list.append(pred.tolist())
             correct = pred == targets
             node_correct_cnt += correct.sum().item()
             node_cnt += targets.size(0)
@@ -164,6 +178,41 @@ def main(args):
             sum(mcc_scores_list) / len(mcc_scores_list),
         )
     )
+
+    if args.output_score:
+        test_df_from_dataset["predict_active_prob"] = predict_active_prob_list
+        test_df_from_dataset["predict_active_label"] = predict_active_label_list
+        test_df_from_dataset["accuracy"] = accuracy_list
+        test_df_from_dataset["precision"] = precision_list
+        test_df_from_dataset["specificity"] = specificity_list
+        test_df_from_dataset["overlap_scores"] = overlap_scores_list
+        test_df_from_dataset["false_positive_rates"] = false_positive_rates_list
+        test_df_from_dataset["f1_scores"] = f1_scores_list
+        test_df_from_dataset["mcc_scores"] = mcc_scores_list
+
+    if args.output_score:
+        os.makedirs(args.output_results_path, exist_ok=True)
+        test_df_from_dataset.to_csv(
+            os.path.join(
+                args.output_results_path,
+                (
+                    "transfer_learning_task_results.csv"
+                    if not args.use_saprot
+                    else "transfer_learning_task_SaProt_results.csv"
+                ),
+            ),
+            index=False,
+        )
+        test_df_from_dataset.to_json(
+            os.path.join(
+                args.output_results_path,
+                (
+                    "transfer_learning_task_results.json"
+                    if not args.use_saprot
+                    else "transfer_learning_task_SaProt_results.json"
+                ),
+            )
+        )
 
 
 if __name__ == "__main__":
@@ -218,6 +267,11 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--test_remove_aegan_train", type=bool, default=False)
+    parser.add_argument(
+        "--output_score",
+        action="store_true",
+    )
+    parser.add_argument("--output_results_path", type=str, default="results")
 
     args = parser.parse_args()
     main(args)
