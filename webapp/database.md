@@ -15,7 +15,7 @@ webapp/mysql_config.json
 
 ```
 CREATE DATABASE easifa;
-
+USE easifa;
 CREATE TABLE qurey_data (
     uniprot_id VARCHAR(255),
     qurey_dataframe TEXT,
