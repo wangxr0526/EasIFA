@@ -22,7 +22,7 @@ webapp/mysql_config.json
 !webapp/static/input_example/one_example.zip
 
 
-webapp/database.md
+
 foldseek_bin
 script/baseline_methods/sitemap_workspace
 script/baseline_methods/deepfri_workspace
@@ -53,3 +53,4 @@ script/pseudo_enzyme_study/*
 !script/pseudo_enzyme_study/pseudoenzyme_study.ipynb
 !script/pseudo_enzyme_study/scoring_results.csv
 !script/pseudo_enzyme_study/score.pkl
+webapp/database_docker.md
