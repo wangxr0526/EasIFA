@@ -1,4 +1,5 @@
 import os
+import torch
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.abspath(__file__), "../..")))
@@ -56,21 +57,24 @@ USE_RETRAIN_SWISSPROT_CHECKPOINT = True
 app.config["SECRET_KEY"] = "abc123"
 
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+
 @app.before_first_request
 def first_request():
     if os.path.exists(full_swissprot_checkpoint_path) and USE_FULL_SWISSPROT_CHECKPOINT:
         app.ECSitePred = EasIFAInferenceAPI(
-            model_checkpoint_path=full_swissprot_checkpoint_path
+            model_checkpoint_path=full_swissprot_checkpoint_path, device=device
         )
     elif (
         os.path.exists(retrain_ec_site_model_state_path)
         and USE_RETRAIN_SWISSPROT_CHECKPOINT
     ):
         app.ECSitePred = EasIFAInferenceAPI(
-            model_checkpoint_path=retrain_ec_site_model_state_path
+            model_checkpoint_path=retrain_ec_site_model_state_path, device=device
         )
     else:
-        app.ECSitePred = EasIFAInferenceAPI()
+        app.ECSitePred = EasIFAInferenceAPI(device=device)
     app.unprot_mysql_parser = UniProtParserMysql(
         mysql_config_path="./mysql_config.json"
     )

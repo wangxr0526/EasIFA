@@ -54,3 +54,5 @@ script/pseudo_enzyme_study/*
 !script/pseudo_enzyme_study/scoring_results.csv
 !script/pseudo_enzyme_study/score.pkl
 webapp/database_docker.md
+webapp/docker-compose.yml
+webapp/easifa.sql
