@@ -374,7 +374,7 @@ class UniProtParser:
         os.makedirs(self.alphafolddb_folder, exist_ok=True)
         assert os.path.exists(
             chebi_path
-        ), f"Download the https://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/structures.csv.gz to {chebi_path}"
+        ), f"Please download file from https://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/structures.csv.gz to {chebi_path}"
         self.chebi_df = pd.read_csv(chebi_path)
         # self.query_uniprotkb_template = "curl  -o {} -H \"Accept: text/plain; format=tsv\" \"https://rest.uniprot.org/uniprotkb/search?query=accession:{}&fields=accession,ec,sequence,cc_catalytic_activity,xref_alphafolddb,ft_binding,ft_act_site,ft_site\""
         self.query_uniprotkb_template = '/usr/bin/curl  -o {} -H "Accept: application/json" "https://rest.uniprot.org/uniprotkb/search?query=accession:{}&fields=accession,ec,sequence,cc_catalytic_activity,xref_alphafolddb,ft_binding,ft_act_site,ft_site"'
