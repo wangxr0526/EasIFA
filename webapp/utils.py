@@ -372,7 +372,9 @@ class UniProtParser:
         os.makedirs(self.rxn_folder, exist_ok=True)
         self.alphafolddb_folder = alphafolddb_folder
         os.makedirs(self.alphafolddb_folder, exist_ok=True)
-
+        assert os.path.exists(
+            chebi_path
+        ), f"Download the https://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/structures.csv.gz to {chebi_path}"
         self.chebi_df = pd.read_csv(chebi_path)
         # self.query_uniprotkb_template = "curl  -o {} -H \"Accept: text/plain; format=tsv\" \"https://rest.uniprot.org/uniprotkb/search?query=accession:{}&fields=accession,ec,sequence,cc_catalytic_activity,xref_alphafolddb,ft_binding,ft_act_site,ft_site\""
         self.query_uniprotkb_template = '/usr/bin/curl  -o {} -H "Accept: application/json" "https://rest.uniprot.org/uniprotkb/search?query=accession:{}&fields=accession,ec,sequence,cc_catalytic_activity,xref_alphafolddb,ft_binding,ft_act_site,ft_site"'
@@ -592,9 +594,11 @@ class EasIFAInferenceAPI:
 
 class ECSiteBinInferenceAPI(EasIFAInferenceAPI):
     def __init__(
-        self, device="cpu", model_checkpoint_path=default_ec_site_model_state_path,
+        self,
+        device="cpu",
+        model_checkpoint_path=default_ec_site_model_state_path,
         max_enzyme_aa_length=600,
-        pred_tolist=True
+        pred_tolist=True,
     ) -> None:
         self.max_enzyme_aa_length = max_enzyme_aa_length
         model_state, model_args = read_model_state(
