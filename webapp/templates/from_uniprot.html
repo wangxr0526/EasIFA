@@ -22,20 +22,23 @@
     {% block head %}
 
     <style>
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             height: auto;
-            background-color: #ffffff; 
+            background-color: #ffffff;
             box-sizing: border-box;
-            margin-top: 30px; /* 假设 header 的高度是 100px */
+            margin-top: 30px;
+            /* 假设 header 的高度是 100px */
             font-family: "Raleway", Arial, Helvetica, sans-serif;
             display: flex;
             justify-content: center;
-            flex-direction: column; /* 使得container在中间 */
-          }
+            flex-direction: column;
+            /* 使得container在中间 */
+        }
 
-          .container {
+        .container {
             max-width: 1440px;
             /* 设置最大宽度 */
             width: 100%;
@@ -44,7 +47,7 @@
             /* 上下保持20px间距，左右自动居中 */
             height: 100%;
             background-color: #ffffff;
-            
+
         }
 
         .section {
@@ -168,28 +171,34 @@
         .custom-file-button:hover {
             background-color: #e9ecef;
         }
+
         .text-padding {
             padding-top: 10%;
             padding-bottom: 5%;
         }
+
         .display-block {
             display: block;
-            width: 100%; /* 让元素占据整个容器的宽度 */
-            text-align: center; /* 如果需要居中对齐文本 */
-            margin-bottom: 10px; /* 在元素之间添加一些垂直空间 */
+            width: 100%;
+            /* 让元素占据整个容器的宽度 */
+            text-align: center;
+            /* 如果需要居中对齐文本 */
+            margin-bottom: 10px;
+            /* 在元素之间添加一些垂直空间 */
         }
+
         .modal-dialog {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
         }
-        
+
         .modal.fade .modal-dialog {
             transition: transform .3s ease-out;
             transform: translateY(0);
         }
-        
+
         .modal.show .modal-dialog {
             transform: translateY(0);
         }
@@ -215,6 +224,7 @@
         #footer ul li {
             margin-bottom: 0.5em;
         }
+
         #footer p {
             margin-bottom: 0em;
         }
@@ -243,45 +253,47 @@
                 <a href="/from_structure">From Structure</a>
                 <a href="/from_uniprot">From UniProt</a>
             </nav>
-                <!-- <a href="#navPanel" class="navPanelToggle"><span class="fa fa-bars"></span></a> -->
+            <!-- <a href="#navPanel" class="navPanelToggle"><span class="fa fa-bars"></span></a> -->
         </div>
     </header><!-- Main -->
 
     <div class="container">
 
 
-        <header class="align-center text-padding" >
+        <header class="align-center text-padding">
             <h2><a style="color: #090F18;">Prediction Enzyme Active Site From UniProt ID</a></h2>
         </header>
 
         <div class="section rounded-section ">
             <p style="text-align: center; margin: 10px;">
-                <img src="../static/images/from_uniprot.svg" style="max-width: 100%; height: auto; display: block; margin: auto;">
+                <img src="../static/images/from_uniprot.svg"
+                    style="max-width: 100%; height: auto; display: block; margin: auto;">
             </p>
         </div>
 
         <form id="form" method="post" action="/results_from_uniprot" enctype="multipart/form-data">
-        <div class="section rounded-section  display-block">
-            <div style="text-align:start;">
-                <label class="form-label"><i class="bi-diamond-fill"></i> Input a UniProt ID of Enzyme</label>
-            </div>
-            <br>
+            <div class="section rounded-section  display-block">
+                <div style="text-align:start;">
+                    <label class="form-label"><i class="bi-diamond-fill"></i> Input a UniProt ID of Enzyme</label>
+                </div>
+                <br>
 
-            <div style="text-align:start;">
-                <label class="form-label">UniProt ID: </label>
-            </div>
+                <div style="text-align:start;">
+                    <label class="form-label">UniProt ID: </label>
+                </div>
 
-            <div><input class="form-control" id="uniprot_inputs" name="uniprot_id" placeholder="F6KCZ5", value="F6KCZ5"></div>
+                <div><input class="form-control" id="uniprot_inputs" name="uniprot_id" placeholder="F6KCZ5" ,
+                        value="F6KCZ5"></div>
         </form>
 
-            <footer>
-                <div style="text-align: center;">
-                    <a id="mysubmit" class="button special" style="border-radius: 8px; margin: 40px;">Start
-                        Preidiction</a>
-                </div>
-            </footer>
-        </div>
-        
+        <footer>
+            <div style="text-align: center;">
+                <a id="mysubmit" class="button special" style="border-radius: 8px; margin: 40px;">Start
+                    Preidiction</a>
+            </div>
+        </footer>
+    </div>
+
 
     </div>
 
@@ -347,7 +359,11 @@
 
                     <li><span class="label">Address:</span><br></li>
                     <li>Innovation Institute for Artificial Intelligence in Medicine of Zhejiang University, College
-                            of Pharma-ceutical Sciences, Zhejiang University, Hangzhou, 310058, China.<br></li>
+                        of Pharma-ceutical Sciences, Zhejiang University, Hangzhou, 310058, China.<br></li>
+                    <li> State Key Laboratory of Quality Research in Chinese Medicine, Macau Institute for Applied
+                        Research in Medicine and Health, Macau University of Science and Technology, Macao, 999078,
+                        China.</li>
+
 
                     <li><span class="label">E-mail:</span></li>
                     <li>
@@ -376,13 +392,13 @@
 
 <script>
 
-    $(function() {
-    
+    $(function () {
+
         $('#nav_target_prediction').addClass("active");
-    
+
         $('.dropdown-toggle').dropdown()
-    
-        $( "#mysubmit" ).click(function() {
+
+        $("#mysubmit").click(function () {
             var uniprot_id = $('#uniprot_inputs').val();
             console.info(uniprot_id);
             if (uniprot_id.length > 0) {
@@ -392,15 +408,15 @@
             } else {
                 $('#uniprot_inputs').focus();
             }
-        });    
+        });
     });
-    
-    $("td").each(function(i,el){
+
+    $("td").each(function (i, el) {
         var td = parseFloat($(el).text());
-        if(!isNaN(td)){
+        if (!isNaN(td)) {
             $(el).text(td.toFixed(5));
         }
-        });
+    });
 </script>
 
 
