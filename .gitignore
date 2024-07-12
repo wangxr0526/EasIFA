@@ -35,9 +35,13 @@ script/easifa_inference_from_aa_sequence/mdinfo
 script/easifa_inference_from_aa_sequence/esmfold_optimzed_pdb
 
 script/*
+!script/rfdiffusion_case_study_script/
+script/rfdiffusion_case_study_script/*
+!script/rfdiffusion_case_study_script/similarity_index_calculate_for_rfdiffusion_case.ipynb
 !script/TIM_barrel_study/
 script/TIM_barrel_study/*
 !dataset/ec_site_dataset/uniprot_ecreact_cluster_split_merge_dataset_limit_100/test_dataset_with_similarity_idx.csv
+!dataset/mcsa_fine_tune/normal_mcsa/test_dataset_with_similarity_idx.csv
 !script/easifa_inference_from_aa_sequence
 !script/scoring_results.ipynb
 !script/TIM_barrel_study/tim_barrel_study.ipynb
@@ -56,3 +60,4 @@ script/pseudo_enzyme_study/*
 webapp/database_docker.md
 webapp/docker-compose.yml
 webapp/easifa.sql
+*copy*
