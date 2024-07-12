@@ -1480,20 +1480,34 @@ if __name__ == "__main__":
         nb_workers=12,
     )
 
-    train_set, valid_set, test_set = dataset.split()
-    for i in tqdm(range(10)):
-        train_set[i]
-        valid_set[i]
-        test_set[i]
-    enzyme_rxnfp_collate_extract = EnzymeRxnfpCollate()
-    train_loader = torch_data.DataLoader(
-        train_set,
-        batch_size=8,
-        collate_fn=enzyme_rxnfp_collate_extract,
-        # collate_fn=enzyme_rxn_collate_extract,
-        num_workers=2,
-    )
-    for batch_data in tqdm(train_loader, desc="train loader"):
-        if device.type == "cuda":
-            batch_data = cuda(batch_data, device=device)
-        check_function(batch_data)
+    # train_set, valid_set, test_set = dataset.split()
+    # for i in tqdm(range(10)):
+    #     train_set[i]
+    #     valid_set[i]
+    #     test_set[i]
+    # enzyme_rxnfp_collate_extract = EnzymeRxnfpCollate()
+    # train_loader = torch_data.DataLoader(
+    #     train_set,
+    #     batch_size=8,
+    #     collate_fn=enzyme_rxnfp_collate_extract,
+    #     # collate_fn=enzyme_rxn_collate_extract,
+    #     num_workers=2,
+    # )
+    # for batch_data in tqdm(train_loader, desc="train loader"):
+    #     if device.type == "cuda":
+    #         batch_data = cuda(batch_data, device=device)
+    #     check_function(batch_data)
+
+
+    # dataset_df: pd.DataFrame = dataset.dataset_df
+    # dataset_df = dataset_df.drop_duplicates(subset=['aa_sequence', 'site_types']).reset_index(drop=True)
+    # from collections import defaultdict
+    # count_dict = defaultdict(int)
+
+    # for site_type in tqdm(dataset_df['site_types'], total=len(dataset_df)):
+    #     site_type = eval(site_type)
+    #     for one_site_type in site_type:
+    #         count_dict[one_site_type] += 1
+
+    # print(count_dict)
+

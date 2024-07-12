@@ -91,7 +91,7 @@ def main(args):
         ].reset_index(drop=True)
 
         test_df_from_dataset = merge_similarity_index(
-            test_df_from_dataset, test_df_with_similarity_index
+            test_df_from_dataset, test_df_with_similarity_index, merge_tmscore=True if args.task_type != 'direct-test-mcsa' else False
         )
         test_df_from_dataset: pd.DataFrame
         args.output_score = True

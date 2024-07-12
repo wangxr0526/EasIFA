@@ -1,5 +1,6 @@
 import argparse
 import os
+import pandas as pd
 from tqdm.auto import tqdm
 from collections import defaultdict
 import torch
@@ -9,6 +10,7 @@ from common.utils import (
     calculate_scores_vmulti_test,
     convert_fn,
     cuda,
+    merge_similarity_index,
     read_model_state,
 )
 from data_loaders.enzyme_rxn_dataloader import (
@@ -68,11 +70,26 @@ def main(args):
         args.collate_fn = enzyme_rxn_collate_extract
     _, _, test_dataset = dataset.split()
 
-    if args.output_score:
+    if args.test_dataset_similarity_index_file == "" and args.output_score:
         dataset_df = test_dataset.dataset.dataset_df
         test_df_from_dataset = dataset_df.loc[
             dataset_df["dataset_flag"] == "test"
         ].reset_index(drop=True)
+
+    if args.test_dataset_similarity_index_file != "":
+        test_df_with_similarity_index = pd.read_csv(
+            args.test_dataset_similarity_index_file
+        )
+        dataset_df = test_dataset.dataset.dataset_df
+        test_df_from_dataset = dataset_df.loc[
+            dataset_df["dataset_flag"] == "test"
+        ].reset_index(drop=True)
+
+        test_df_from_dataset = merge_similarity_index(
+            test_df_from_dataset, test_df_with_similarity_index, merge_tmscore=False
+        )
+        test_df_from_dataset: pd.DataFrame
+        args.output_score = True
 
     test_dataloader = torch_data.DataLoader(
         test_dataset,
@@ -272,6 +289,8 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument("--output_results_path", type=str, default="results")
+
+    parser.add_argument("--test_dataset_similarity_index_file", type=str, default="")
 
     args = parser.parse_args()
     main(args)

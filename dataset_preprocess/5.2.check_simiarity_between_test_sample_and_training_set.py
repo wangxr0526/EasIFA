@@ -44,7 +44,7 @@ def run_subprocess_and_print(args):
             print("Error:", err)
     proc.communicate()
 
-threshold = [0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
+threshold = [0.8, 0.7, 0.6, 0.5, 0.4]
 command = "/home/xiaoruiwang/software/cdhit/cd-hit"
 for thre in threshold:
 
@@ -215,25 +215,22 @@ def get_similarity_index_level(level1_cls, level2_cls, level3_cls, train_dataset
             return similarity_index_levels[2] # 0.6~0.8
 
 # %%
-similarity_index_levels_6 = ['0~30%', '30~40%', '40~50%', '50~60%', '60~70%', '70~80%']
-def get_similarity_index_level_6(cluster_80, cluster_70, cluster_60, cluster_50, cluster_40, cluster_30, train_dataset):
+similarity_index_levels_5 = ['0~40%', '40~50%', '50~60%', '60~70%', '70~80%']
+def get_similarity_index_level_5(cluster_80, cluster_70, cluster_60, cluster_50, cluster_40, train_dataset):
 
-    if (cluster_30 not in train_dataset['cluster_ther_0.3'].tolist()):  # 在0.2阈值下与训练集没有相同的cluster，则代表相似度小于0.3
-        return similarity_index_levels_6[0]  # 0~0.3
-    else: # 在0.2阈值下，与训练集有相同的cluster，则相似度大于0.3
-        if (cluster_40 not in train_dataset['cluster_ther_0.4'].tolist()): # 在0.4阈值下与训练集没有相同的cluster，则代表相似度小于0.4
-            return similarity_index_levels_6[1] # 0.2~0.4
-        else: # 在0.4阈值下，与训练集有相同的cluster，则相似度大于0.4
-            if (cluster_50 not in train_dataset['cluster_ther_0.5'].tolist()): # 在0.5阈值下与训练集没有相同的cluster，则代表相似度小于0.5
-                return similarity_index_levels_6[2] # 0.4~0.5
-            else: # 在0.5阈值下，与训练集有相同的cluster，则相似度大于0.5
-                if (cluster_60 not in train_dataset['cluster_ther_0.6'].tolist()): # 在0.6阈值下与训练集没有相同的cluster，则代表相似度小于0.6
-                    return similarity_index_levels_6[3] # 0.5~0.6
-                else: # 在0.6阈值下，与训练集有相同的cluster，则相似度大于0.6
-                    if (cluster_70 not in train_dataset['cluster_ther_0.7'].tolist()): # 在0.7阈值下与训练集没有相同的cluster，则代表相似度小于0.7
-                        return similarity_index_levels_6[4] # 0.6~0.7
-                    else:
-                        return similarity_index_levels_6[5] # 0.7~0.8
+    if (cluster_40 not in train_dataset['cluster_ther_0.4'].tolist()): # 在0.4阈值下与训练集没有相同的cluster，则代表相似度小于0.4
+        return similarity_index_levels_5[0] # 0.2~0.4
+    else: # 在0.4阈值下，与训练集有相同的cluster，则相似度大于0.4
+        if (cluster_50 not in train_dataset['cluster_ther_0.5'].tolist()): # 在0.5阈值下与训练集没有相同的cluster，则代表相似度小于0.5
+            return similarity_index_levels_5[1] # 0.4~0.5
+        else: # 在0.5阈值下，与训练集有相同的cluster，则相似度大于0.5
+            if (cluster_60 not in train_dataset['cluster_ther_0.6'].tolist()): # 在0.6阈值下与训练集没有相同的cluster，则代表相似度小于0.6
+                return similarity_index_levels_5[2] # 0.5~0.6
+            else: # 在0.6阈值下，与训练集有相同的cluster，则相似度大于0.6
+                if (cluster_70 not in train_dataset['cluster_ther_0.7'].tolist()): # 在0.7阈值下与训练集没有相同的cluster，则代表相似度小于0.7
+                    return similarity_index_levels_5[3] # 0.6~0.7
+                else:
+                    return similarity_index_levels_5[4] # 0.7~0.8
 
 
 
@@ -241,7 +238,7 @@ def get_similarity_index_level_6(cluster_80, cluster_70, cluster_60, cluster_50,
 test_dataset['similarity_index_level'] = test_dataset.apply(lambda row: get_similarity_index_level(row['cluster_ther_0.8'], row['cluster_ther_0.6'], row['cluster_ther_0.4'], train_dataset), axis=1)
 
 # %%
-test_dataset['similarity_index_level_6'] = test_dataset.apply(lambda row: get_similarity_index_level_6(row['cluster_ther_0.8'], row['cluster_ther_0.7'], row['cluster_ther_0.6'], row['cluster_ther_0.5'], row['cluster_ther_0.4'], row['cluster_ther_0.3'], train_dataset), axis=1)
+test_dataset['similarity_index_level_5'] = test_dataset.apply(lambda row: get_similarity_index_level_5(row['cluster_ther_0.8'], row['cluster_ther_0.7'], row['cluster_ther_0.6'], row['cluster_ther_0.5'], row['cluster_ther_0.4'], train_dataset), axis=1)
 
 # %%
 import matplotlib.pyplot as plt
@@ -277,8 +274,8 @@ plt.show()
 import matplotlib.pyplot as plt
 
 
-thresholds = similarity_index_levels_6
-sample_counts = [(test_dataset['similarity_index_level_6'] == x).sum() for x in thresholds]
+thresholds = similarity_index_levels_5
+sample_counts = [(test_dataset['similarity_index_level_5'] == x).sum() for x in thresholds]
 
 
 
@@ -311,8 +308,8 @@ cluster_all_levels2alphafold_id[0.8]
 
 # %%
 import subprocess
-tmscore_path='/home/xiaoruiwang/software/TMalign/TMscore'  # 替换为自己下载的TMscore路径
-def calculate_tmscore(pdb_file1, pdb_file2, tmscore_path='TMscore'):
+tmscore_path='/home/xiaoruiwang/software/TMalign/TMalign'  # 替换为自己下载的TMscore路径
+def calculate_tmscore(pdb_file1, pdb_file2, tmscore_path='TMalign'):
     """
     Calculate the TMscore for two PDB files using the TMscore program.
     
@@ -325,22 +322,27 @@ def calculate_tmscore(pdb_file1, pdb_file2, tmscore_path='TMscore'):
     float: The TMscore of the two PDB structures.
     """
     # 构建命令行命令
-    command = [tmscore_path, pdb_file1, pdb_file2]
+    # command = [tmscore_path, pdb_file1, pdb_file2]
+    command = f'{tmscore_path} {pdb_file1} {pdb_file2}'
     
-    # 调用 subprocess.run 来执行 TMscore
-    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
+    # Execute the command
+    process = subprocess.run(command, shell=True, text=True, capture_output=True)
     
-    # 解析输出，查找TM-score
-    tmscore = None
-    for line in result.stdout.split('\n'):
-        if line.strip().startswith('TM-score'):
-            # print(line.strip())
-            parts = line.split('=')
-            if len(parts) > 1:
-                tmscore = float(parts[1].split()[0])
-                break
-    
-    return tmscore
+    # Check if the command executed successfully
+    if process.returncode != 0:
+        raise Exception("TMalign failed to execute. Check if TMalign is correctly installed and the paths are set.")
+
+    # Get the output from the command
+    output = process.stdout
+
+    # Parse the output to find the TM-score normalized by the length of Chain_2
+    for line in output.split('\n'):
+        if "TM-score=" in line and "length of Chain_2" in line:
+            # Extract the TM-score value from the line
+            tm_score = float(line.split('=')[1].split('(')[0].strip())
+            return tm_score
+
+    raise Exception("TM-score for Chain_2 not found in the output.")
 
 # 调用函数
 # pdb1 = "/home/xiaoruiwang/software/TMalign/PDB2.pdb"
@@ -368,18 +370,18 @@ def get_structure_TMScore(row, train_dataset, pdb_path='../dataset/ec_site_datas
     return max_tmscore
 
 # %%
-tqdm.pandas()
-test_dataset['max_tmscore'] = test_dataset.progress_apply(lambda row:get_structure_TMScore(row, train_dataset), axis=1)
+pandarallel.initialize(nb_workers=12, progress_bar=True)
+test_dataset['max_tmscore'] = test_dataset.parallel_apply(lambda row:get_structure_TMScore(row, train_dataset), axis=1)
 
 # %%
 (test_dataset['max_tmscore'] > 0.5).sum()
 
 # %%
-(test_dataset['max_tmscore'] < 0.17).sum()
+(test_dataset['max_tmscore'] < 0.2).sum()
 
 # %%
-bins = [0, 0.17, 0.5, 1]
-labels = ['0~0.17', '0.17~0.5', '0.5~1']
+bins = [0, 0.2, 0.5, 1]
+labels = ['0~0.2', '0.2~0.5', '0.5~1']
 test_dataset['range'] = pd.cut(test_dataset['max_tmscore'], bins=bins, labels=labels, right=False)
 count_series = test_dataset['range'].value_counts().reindex(labels)
 
@@ -399,6 +401,6 @@ plt.show()
 
 # %%
 test_dataset.to_csv(os.path.join(ec_site_dataset_path, merge_dataset_name_str+f'{max_sample}', 'test_dataset_with_similarity_idx.csv'), index=False)
-# 注释防止文件被意外覆盖
+
 
 

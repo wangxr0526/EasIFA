@@ -465,12 +465,16 @@ def calculate_scores_ood(preds, gts, num_residues):
     assert len(overlap_scores) + len(neg_accuracy) == len(preds)
     return overlap_scores, fpr_list, neg_accuracy
 
-def merge_similarity_index(dataset_from_loader, dataset_with_similarity_index):
+def merge_similarity_index(dataset_from_loader, dataset_with_similarity_index, merge_tmscore=True):
     dataset_with_similarity_index['alphafolddb-id'] = dataset_with_similarity_index['alphafolddb-id'].apply(lambda x:x.split(';')[0])
-    dataset_with_similarity_index = dataset_with_similarity_index[[ 'alphafolddb-id', 'similarity_index_level', 'max_tmscore']]
+    if merge_tmscore:
+        dataset_with_similarity_index = dataset_with_similarity_index[[ 'alphafolddb-id', 'similarity_index_level', 'max_tmscore']]
+    else:
+        dataset_with_similarity_index = dataset_with_similarity_index[[ 'alphafolddb-id', 'similarity_index_level']]
     assert dataset_with_similarity_index['alphafolddb-id'].tolist() == dataset_from_loader['alphafolddb-id'].tolist()
     dataset_from_loader['similarity_index_level'] = dataset_with_similarity_index['similarity_index_level']
-    dataset_from_loader['max_tmscore'] = dataset_with_similarity_index['max_tmscore']
+    if merge_tmscore:
+        dataset_from_loader['max_tmscore'] = dataset_with_similarity_index['max_tmscore']
     return dataset_from_loader
 
 
