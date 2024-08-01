@@ -32,7 +32,7 @@ We have developed a [WebServer](http://easifa.iddd.group) for EasIFA, which allo
 ![GUI](img/Web-GUI.png)
 
 ## Quickly Start From Gitpod
-About 4 minutes.<br>
+About 15 minutes for automated deployment.<br>
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/github.com/wangxr0526/EasIFA) 
 
 
