@@ -16,8 +16,10 @@ tasks:
       source activate /workspace/miniconda3/envs/easifa_env &&
       conda unpack &&
       pip uninstall fair-esm -y && pip install git+https://github.com/facebookresearch/esm.git &&
-      pip install mysql-connector-python==8.2.0 mysqlclient==2.2.1 &&
-      sudo apt-get install aria2 -y
+      pip install mysql-connector-python==8.2.0 mysqlclient==2.2.1 rxnfp flask_wtf &&
+      sudo apt-get install aria2 -y &&
+      mkdir -vp /workspace/EasIFA/dataset/raw_dataset/chebi/ &&
+      wget https://ftp.ebi.ac.uk/pub/databases/chebi/Flat_file_tab_delimited/structures.csv.gz -O /workspace/EasIFA/dataset/raw_dataset/chebi/structures.csv.gz
 
     command: >
       cd /workspace/EasIFA/webapp &&
