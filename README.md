@@ -4,7 +4,7 @@ Implementation of enzyme catalytic acitve site prediction with EasIFA<br><br>
 
 The high-definition images from the manuscript can be found at [`Manuscript Figures`](./paper_figures/).
 
-![EasIFA](./paper_figures/Figure1.png)
+![EasIFA](./paper_figures//Figure%201.png)
 
 
 ## Contents
