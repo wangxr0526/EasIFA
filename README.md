@@ -23,7 +23,7 @@ The high-definition images from the manuscript can be found at [`Manuscript Figu
 - [Cite Us](#cite-us)
 
 ## Publication
-Multi-Modal Deep Learning Enables Ultrafast and Accurate Annotation of Enzymatic Active Sites
+[Multi-Modal Deep Learning Enables Ultrafast and Accurate Annotation of Enzymatic Active Sites](https://doi.org/10.1038/s41467-024-51511-6)
 
 ## Web Server
 
@@ -140,4 +140,18 @@ python test_knowledge_transfer_learning.py --gpu CUDA_ID \
 ```
 ## Cite Us
 
-Under review
+```
+@article{wang_easifa_2024,
+	title = {Multi-modal deep learning enables efficient and accurate annotation of enzymatic active sites},
+	volume = {15},
+	issn = {2041-1723},
+	url = {https://www.nature.com/articles/s41467-024-51511-6},
+	doi = {10.1038/s41467-024-51511-6},
+	urldate = {2024-08-27},
+	journal = {Nature Communications},
+	author = {Wang, Xiaorui and Yin, Xiaodan and Jiang, Dejun and Zhao, Huifeng and Wu, Zhenxing and Zhang, Odin and Wang, Jike and Li, Yuquan and Deng, Yafeng and Liu, Huanxiang and Luo, Pei and Han, Yuqiang and Hou, Tingjun and Yao, Xiaojun and Hsieh, Chang-Yu},
+	month = aug,
+	year = {2024},
+	pages = {7348},
+}
+```
