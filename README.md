@@ -55,7 +55,8 @@ This process usually takes few munites to complete.<br>
 ```
 git clone https://github.com/wangxr0526/EasIFA.git
 cd EasIFA
-conda env create -f envs.yml
+chmod +x ./setup_EasIFA.sh
+./setup_EasIFA.sh
 conda activate easifa_env
 ```
 
