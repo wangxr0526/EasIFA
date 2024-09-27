@@ -178,7 +178,7 @@ def evaluate_vmulti(
                 num_site_types=num_site_types,
             )
             for key in metrics:
-                all_metrics[key] += metrics
+                all_metrics[key] += metrics[key]
 
     model.train()
     overlap_scores = metrics.pop("overlap_scores")
@@ -187,7 +187,7 @@ def evaluate_vmulti(
     mean_metrics = defaultdict(list)
     for key in metrics:
         if len(metrics[key]) != 0:
-            mean_metrics[key].append(sum(metrics[key]) / len(metrics[key]))
+            mean_metrics[key].append(sum(all_metrics[key]) / len(all_metrics[key]))
         else:
             mean_metrics[key].append(0)
 
