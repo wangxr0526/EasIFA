@@ -184,8 +184,8 @@ def evaluate_vmulti(
                 all_metrics[key] += metrics[key]
 
     model.train()
-    overlap_scores = metrics.pop("overlap_scores")
-    false_positive_rates = metrics.pop("false_positive_rates")
+    overlap_scores = all_metrics.pop("overlap_scores")
+    false_positive_rates = all_metrics.pop("false_positive_rates")
 
     mean_metrics = defaultdict(list)
     for key in metrics:
