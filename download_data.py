@@ -15,10 +15,22 @@ def cmd(command):
         stderr=subprocess.PIPE,
         encoding="utf-8",
     )
-    subp.wait()
-    if subp.poll() == 0:
-        print(subp.communicate()[1])
-    else:
+    
+    # Real-time output reading
+    while True:
+        output = subp.stdout.readline()
+        if output == '' and subp.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+    
+    # Check for any errors
+    err = subp.stderr.read()
+    if err:
+        print(err)
+    
+    # Final exit status check
+    if subp.poll() != 0:
         print(f"{command} Failure!")
 
 
@@ -46,7 +58,7 @@ def get_alphafolddb_pdb_urls(dataset_path):
             df = pd.read_csv(os.path.join(this_path, file))
             all_pdb_ids.update(set(df["alphafolddb-id"].tolist()))
 
-    return [url_template.format(x.strip()) for x in list(all_pdb_ids)]
+    return [url_template.format(x.strip().replace(';', '')) for x in list(all_pdb_ids)]
 
 
 def download_structures(dataset_path):
@@ -73,7 +85,7 @@ def download_structures(dataset_path):
 print("Downloading files...")
 
 for url, save_path in file_list:
-    if not os.path.exists(save_path.replace(".zip", "")):
+    if (not os.path.exists(save_path.replace(".zip", ""))) or save_path.endswith('dataset.zip'):
         if not os.path.exists(save_path):
             gdown.download(url, save_path, quiet=False)
             assert os.path.exists(save_path)
