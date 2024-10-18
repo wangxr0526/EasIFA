@@ -688,7 +688,7 @@ class ECSiteSeqBinInferenceAPI(ECSiteBinInferenceAPI):
 
 
 class UniProtParserMysql:
-    def __init__(self, mysql_config_path) -> None:
+    def __init__(self, mysql_config_path, no_warning=False) -> None:
         self.mysql_config_path = mysql_config_path
 
         self.unprot_parser = UniProtParser(
@@ -697,7 +697,7 @@ class UniProtParserMysql:
             rxn_folder=rxn_folder,
             alphafolddb_folder=alphafolddb_folder,
         )
-
+        self.warning = not no_warning
         self.query_data_template = "SELECT * FROM qurey_data WHERE uniprot_id = %s"
         self.query_results_template = (
             "SELECT * FROM predicted_results WHERE uniprot_id = %s"
@@ -722,8 +722,9 @@ class UniProtParserMysql:
         except Exception as e:
             self.use_mysql = False
             self.mysql_conn = None
-            print(e)
-            print("Warning: MySQL connect fail!")
+            if self.warning:
+                print(e)
+                print("Warning: MySQL connect fail!")
 
     def _reconnect_mysql(self):
         try:
@@ -731,8 +732,9 @@ class UniProtParserMysql:
             self.use_mysql = True
         except Exception as e:
             self.use_mysql = False
-            print(e)
-            print("Warning: MySQL reconnect fail!")
+            if self.warning:
+                print(e)
+                print("Warning: MySQL reconnect fail!")
 
     def _check_and_reconnect_mysql(self):
 
@@ -761,7 +763,8 @@ class UniProtParserMysql:
             )
             self.mysql_conn.commit()
         except Error as e:
-            print("Error while inserting data into MySQL", e)
+            if self.warning:
+                print("Error while inserting data into MySQL", e)
             # self._reconnect_mysql()
             if self.use_mysql:
                 self._insert_data(data, predicted_results)  # 重试插入操作
@@ -781,7 +784,8 @@ class UniProtParserMysql:
             predicted_results = cursor.fetchone()
             return query_data, predicted_results
         except Error as e:
-            print("Error while querying data from MySQL", e)
+            if self.warning:
+                print("Error while querying data from MySQL", e)
             # self._reconnect_mysql()
             if self.use_mysql:
                 return self._query_data(uniprot_id)  # 重试查询操作
@@ -845,7 +849,8 @@ class UniProtParserMysql:
             insert_data = (uniprot_id, query_dataframe, message, calculated_sequence)
             self._insert_data(insert_data, predicted_results)
         else:
-            print("Warning: insert failure!")
+            if self.warning:
+                print("Warning: insert failure!")
 
 
 if __name__ == "__main__":

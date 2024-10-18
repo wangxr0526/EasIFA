@@ -61,3 +61,5 @@ webapp/database_docker.md
 webapp/docker-compose.yml
 webapp/easifa.sql
 *copy*
+!script/inference_from_uniprot_id.ipynb
+!script/inference_from_uniprot_id.py
