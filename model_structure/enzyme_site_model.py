@@ -136,7 +136,8 @@ class EnzymeActiveSiteModel(nn.Module):
             )
             rxn_attn_model = load_pretrain_model_state(rxn_attn_model, model_state)
         else:
-            print("Reaction attention model from scratch...")
+            # print("Reaction attention model from scratch...")
+            pass
         return rxn_attn_model
 
 
@@ -229,7 +230,8 @@ class EnzymeActiveSiteClsModel(nn.Module):
             )
             rxn_attn_model = load_pretrain_model_state(rxn_attn_model, model_state)
         else:
-            print("Reaction attention model from scratch...")
+            pass
+            # print("Reaction attention model from scratch...")
         return rxn_attn_model
 
 
