@@ -22,7 +22,7 @@ from wtforms.fields import (
 )
 from wtforms import Form, validators
 from flask_wtf import FlaskForm
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 from rdkit.Chem import AllChem
 from flask_bootstrap import Bootstrap
 
@@ -30,7 +30,10 @@ from utils import (
     EasIFAInferenceAPI,
     UniProtParser,
     UniProtParserMysql,
+    canonicalize_smiles,
     get_structure_html_and_active_data,
+    validate_pdb,
+    validate_rxn_smiles,
     white_pdb,
     reaction2svg,
     file_cache_path,
@@ -619,6 +622,237 @@ def results_from_uniprot():
             ret={
                 # 'form': form,
                 "error": "The input is not valid, or there is an internal problem with the system. Please contact the administrator, Email: wangxr2018@lzu.edu.cn",
+                "output": [],
+                # 'csv_id': csv_id,
+            },
+        )
+
+
+@app.route("/api/from_uniprot", methods=["POST"])
+def from_uniprot_api():
+    if not request.is_json:
+        return jsonify({"error": "Missing JSON in request"}), 400
+
+    inputed_data = {k: v for k, v in request.get_json().items()}
+
+    uniprot_id = inputed_data.get("uniprot_id", "")
+    if uniprot_id == "":
+        return jsonify({"error": "Please input valid UniProt ID"}), 400
+
+    try:
+        use_store_results = False
+        query_data, stored_predicted_results, is_new_data = (
+            app.unprot_mysql_parser.query_from_uniprot(uniprot_id)
+        )
+        uniprot_id, query_results_df, msg, stored_calculated_sequence = query_data
+
+        # query_results_df, msg = app.unprot_parser.parse_from_uniprotkb_query(uniprot_id)
+
+        if (msg != "Good") and is_new_data:
+            predicted_results = []
+            app.unprot_mysql_parser.insert_to_local_database(
+                uniprot_id=uniprot_id,
+                query_dataframe=query_results_df,
+                message=msg,
+                calculated_sequence=stored_calculated_sequence,
+                predicted_results=predicted_results,
+            )
+
+        if msg == "Not Enzyme":
+            return jsonify(
+                {
+                    # 'form': form,
+                    "error": f"The UniProt ID: {uniprot_id} appears not to be an enzyme.",
+                    "output": [],
+                    # 'csv_id': csv_id,
+                },
+            )
+        if msg == "No recorded reaction catalyzed found":
+            return jsonify(
+                {
+                    # 'form': form,
+                    "error": f"No reactions catalyzed were found for Uniprot ID: {uniprot_id}",
+                    "output": [],
+                    # 'csv_id': csv_id,
+                },
+            )
+
+        if msg == "No Alphafolddb Structure":
+            return jsonify(
+                {
+                    # 'form': form,
+                    "error": f"Uniprot ID: {uniprot_id} could not find available structural data",
+                    "output": [],
+                    # 'csv_id': csv_id,
+                },
+            )
+
+        enzyme_aa_length = query_results_df["aa_length"].tolist()[0]
+        if enzyme_aa_length > app.ECSitePred.max_enzyme_aa_length:
+            return jsonify(
+                {
+                    # 'form': form,
+                    "error": f"The enzyme is too large; enzymes with an amino acid count of {app.ECSitePred.max_enzyme_aa_length} are currently not supported for prediction.",
+                    "output": [],
+                    # 'csv_id': csv_id,
+                },
+            )
+
+        if stored_predicted_results and len(stored_predicted_results) == len(
+            query_results_df
+        ):
+            use_store_results = True
+
+        active_data_list = []
+        predicted_results = []
+        rxn_smiles_list = []
+        calculated_sequence = None
+
+        for idx, row in enumerate(query_results_df.itertuples()):
+            rxn_smiles = row[2]
+            rxn_smiles_list.append(rxn_smiles)
+            enzyme_structure_path = row[3]
+            if not os.path.exists(enzyme_structure_path):
+                enzyme_structure_path = os.path.join(
+                    app.unprot_mysql_parser.unprot_parser.alphafolddb_folder,
+                    f"AF-{uniprot_id}-F1-model_v4.pdb",
+                )
+                cmd(
+                    app.unprot_mysql_parser.unprot_parser.download_alphafolddb_url_template.format(
+                        enzyme_structure_path, uniprot_id
+                    )
+                )
+
+            if use_store_results:
+                pred_active_site_labels = stored_predicted_results[idx]
+            else:
+                pred_active_site_labels = app.ECSitePred.inference(
+                    rxn=rxn_smiles, enzyme_structure_path=enzyme_structure_path
+                )
+                predicted_results.append(pred_active_site_labels)
+            if pred_active_site_labels is None:
+                return jsonify(
+                    {
+                        # 'form': form,
+                        "error": f"The enzyme is too large; enzymes with an amino acid count of {app.ECSitePred.max_enzyme_aa_length} are currently not supported for prediction.",
+                        "output": [],
+                        # 'csv_id': csv_id,
+                    },
+                )
+
+            _, active_data = get_structure_html_and_active_data(
+                enzyme_structure_path=enzyme_structure_path,
+                site_labels=pred_active_site_labels,
+                view_size=(600, 600),
+            )
+
+            active_data_list.append(active_data)
+
+        _results = list(
+            zip(
+                list(range(len(active_data_list))),
+                rxn_smiles_list,
+                active_data_list,
+            )
+        )
+
+        if is_new_data:
+            app.unprot_mysql_parser.insert_to_local_database(
+                uniprot_id=uniprot_id,
+                query_dataframe=query_results_df,
+                message=msg,
+                calculated_sequence=calculated_sequence,
+                predicted_results=predicted_results,
+            )
+
+        return jsonify(
+            {
+                "results": _results,
+            },
+        )
+
+    except Exception as e:
+        print(e)
+        return jsonify(
+            {
+                # 'form': form,
+                "error": "The input is not valid, or there is an internal problem with the system. Please contact the administrator, Email: wangxr2018@lzu.edu.cn",
+                "output": [],
+                # 'csv_id': csv_id,
+            },
+        )
+
+
+@app.route("/api/from_structure", methods=["POST"])
+def from_structure_api():
+
+    rxn_smiles = request.form.get("rxn_smiles")
+
+    pdb_file = request.files.get("pdb_file")
+
+    if not rxn_smiles:
+        rxn_smiles = None
+
+    if not validate_rxn_smiles(rxn_smiles):
+        rxn_smiles = None
+
+    if not pdb_file:
+        pdb_file = None
+    enzyme_structure_path = os.path.join(file_cache_path, "input_pdb.pdb")
+    pdb_file.save(enzyme_structure_path)
+    if not validate_pdb(enzyme_structure_path):
+        pdb_file = None
+
+    inputs = [rxn_smiles, pdb_file]
+    if not all(v is not None for v in inputs):
+        return jsonify({"erro": "Please input valid smiles and pdb file."})
+
+    try:
+
+        pred_active_site_labels = app.ECSitePred.inference(
+            rxn=rxn_smiles, enzyme_structure_path=enzyme_structure_path
+        )
+        if pred_active_site_labels is None:
+            return render_template(
+                "results_from_structure.html",
+                ret={
+                    # 'form': form,
+                    "error": f"The enzyme is too large; enzymes with an amino acid count of {app.ECSitePred.max_enzyme_aa_length} are currently not supported for prediction.",
+                    "output": [],
+                    # 'csv_id': csv_id,
+                },
+            )
+
+        # del app.ECSitePred.caculated_sequence
+
+        _, active_data = get_structure_html_and_active_data(
+            enzyme_structure_path,
+            site_labels=pred_active_site_labels,
+            view_size=(600, 600),
+        )
+
+        return jsonify(
+            {
+                # "structure_html": structure_html,
+                # 'custom_css':custom_css,
+                # "rxnfigure_name": "rxn.svg",
+                "active_data": active_data,
+                # "enzyme_sequence_info": list(
+                #     zip(
+                #         grouped_enzyme_sequence,
+                #         grouped_enzyme_sequence_index,
+                #         grouped_enzyme_sequence_color,
+                #     )
+                # ),
+            },
+        )
+
+    except Exception as e:
+        print(e)
+        return jsonify(
+            {
+                # 'form': form,
+                "error": "Input is not valid!",
                 "output": [],
                 # 'csv_id': csv_id,
             },

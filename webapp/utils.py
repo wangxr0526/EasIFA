@@ -5,19 +5,16 @@ import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.abspath(__file__), "../..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.abspath(__file__), "..")))
-from pandarallel import pandarallel
 from rdkit import Chem
 from rdkit.Chem import Draw, AllChem
 import torch
 import re
 import json
-from tqdm.auto import tqdm
-from collections import defaultdict, OrderedDict
 from functools import partial
 import py3Dmol
-from torch.utils import data as torch_data
 from common.utils import convert_fn, cuda, read_model_state
-from torchdrug import data
+
+from Bio.PDB import PDBParser, PDBExceptions
 from dgllife.utils import WeaveAtomFeaturizer, CanonicalBondFeaturizer, mol_to_bigraph
 from data_loaders.enzyme_dataloader import MyProtein
 from data_loaders.enzyme_rxn_dataloader import (
@@ -363,6 +360,47 @@ def get_structure_html_and_active_data(
 #     return view.write_html(), active_data
 
 
+def canonicalize_smiles(smi):
+    mol = Chem.MolFromSmiles(smi)
+    if mol is not None:
+        return Chem.MolToSmiles(mol)
+    else:
+        return ""
+
+
+def validate_rxn_smiles(rxn_smiles):
+    if ">>" not in rxn_smiles:
+        return False
+    else:
+        reactants, products = [canonicalize_smiles(x) for x in rxn_smiles.split(">>")]
+        if all(v != "" for v in [reactants, products]):
+            return True
+        else:
+            return False
+
+
+def validate_pdb(pdb_path):
+    """
+    验证 PDB 文件的合理性
+    :param pdb_path: PDB 文件路径
+    :return: 布尔值，表示是否为有效的 PDB 文件
+    """
+    if not os.path.isfile(pdb_path):
+        print("PDB file does not exist.")
+        return False
+
+    parser = PDBParser(QUIET=True)  # QUIET=True 避免打印警告信息
+    try:
+        structure = parser.get_structure("structure", pdb_path)
+        return structure is not None
+    except PDBExceptions.PDBConstructionException as e:
+        print(f"PDB validation error: {e}")
+        return False
+    except Exception as e:
+        print(f"General error in PDB validation: {e}")
+        return False
+
+
 class UniProtParser:
     def __init__(self, chebi_path, json_folder, rxn_folder, alphafolddb_folder):
 
@@ -389,11 +427,7 @@ class UniProtParser:
         return smiles
 
     def _canonicalize_smiles(self, smi):
-        mol = Chem.MolFromSmiles(smi)
-        if mol is not None:
-            return Chem.MolToSmiles(mol)
-        else:
-            return ""
+        return canonicalize_smiles(smi)
 
     def _get_reactions(self, query_data):
         reaction_comments = [
