@@ -1,8 +1,15 @@
 # EasIFA
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)  [![DOI](https://zenodo.org/badge/745387829.svg)](https://zenodo.org/doi/10.5281/zenodo.12819439)<br>
-Implementation of enzyme catalytic acitve site prediction with EasIFA<br><br>
 
-The high-definition images from the manuscript can be found at [`Manuscript Figures`](./paper_figures/).
+<div id="top" align="center">
+
+  <h3>Multi-Modal Deep Learning Enables Ultrafast and Accurate Annotation of Enzymatic Active Sites</h3>
+  
+  [![GitHub Repo stars](https://img.shields.io/github/stars/wangxr0526/EasIFA?style=social)](https://github.com/wangxr0526/EasIFA/stargazers)
+  [![WebSite](https://img.shields.io/badge/WebSite-blue)](http://easifa.iddd.group/)
+  ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+  [![DOI](https://zenodo.org/badge/745387829.svg)](https://zenodo.org/doi/10.5281/zenodo.12819439)
+
+</div>
 
 ![EasIFA](./paper_figures//Figure%201.png)
 
