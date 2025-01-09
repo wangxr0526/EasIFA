@@ -487,9 +487,7 @@ def results_from_uniprot():
                 },
             )
 
-        if stored_predicted_results and len(stored_predicted_results) == len(
-            query_results_df
-        ):
+        if stored_predicted_results and stored_calculated_sequence and (len(stored_predicted_results) == len(query_results_df)):
             use_store_results = True
 
         structure_htmls = []
