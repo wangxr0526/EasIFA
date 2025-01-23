@@ -34,7 +34,7 @@
 
 ## Web Server
 
-We have developed a [WebServer](http://easifa.iddd.group) for EasIFA, which allows you to conveniently annotate the active sites of enzymes you are interested in. The workflow is divided into two logical steps: [1)](http://easifa.iddd.group/from_structure) You can directly upload the PDB structure of the enzyme and the catalyzed reaction equation, [2)](http://easifa.iddd.group/from_uniprot) Provide the UniProt ID of the enzyme of interest directly.<br>
+We have developed a [WebServer](http://cadd.zju.edu.cn/easifa/) for EasIFA, which allows you to conveniently annotate the active sites of enzymes you are interested in. The workflow is divided into two logical steps: [1)](http://cadd.zju.edu.cn/easifa/from_structure) You can directly upload the PDB structure of the enzyme and the catalyzed reaction equation, [2)](http://cadd.zju.edu.cn/easifa/from_uniprot) Provide the UniProt ID of the enzyme of interest directly.<br>
 
 ![GUI](img/Web-GUI.png)
 
