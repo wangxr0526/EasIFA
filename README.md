@@ -148,7 +148,7 @@ python test_knowledge_transfer_learning.py --gpu CUDA_ID \
 ```
 ## Cite Us
 
-```
+```bibtex
 @article{wang_easifa_2024,
 	title = {Multi-modal deep learning enables efficient and accurate annotation of enzymatic active sites},
 	volume = {15},
