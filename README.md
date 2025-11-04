@@ -1,3 +1,9 @@
+# EasIFA 2.0 WebServer is now live! 🚀   
+Compared to EasIFA 1.0, the new version expands enzyme data coverage from 46.9% (20.1M UniProt IDs) to 95.6% (41.1M UniProt IDs).  
+It also introduces the new Database module and Agent tools, enabling more efficient enzyme active-site annotation and automated analysis workflows.  
+👉 Access it [here](https://cadd.zju.edu.cn/easifa/): 
+
+
 # EasIFA
 
 <div id="top" align="center">
@@ -34,7 +40,7 @@
 
 ## Web Server
 
-We have developed a [WebServer](http://cadd.zju.edu.cn/easifa/) for EasIFA, which allows you to conveniently annotate the active sites of enzymes you are interested in. The workflow is divided into two logical steps: [1)](http://cadd.zju.edu.cn/easifa/from_structure) You can directly upload the PDB structure of the enzyme and the catalyzed reaction equation, [2)](http://cadd.zju.edu.cn/easifa/from_uniprot) Provide the UniProt ID of the enzyme of interest directly.<br>
+We have developed a [WebServer](https://cadd.zju.edu.cn/easifa/) for EasIFA, which allows you to conveniently annotate the active sites of enzymes you are interested in. The workflow is divided into two logical steps: [1)](https://cadd.zju.edu.cn/easifa/from-structure) You can directly upload the PDB structure of the enzyme and the catalyzed reaction equation, [2)](https://cadd.zju.edu.cn/easifa/from-uniprot) Provide the UniProt ID of the enzyme of interest directly.<br>
 
 ![GUI](img/Web-GUI.png)
 
