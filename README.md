@@ -1,7 +1,20 @@
 # EasIFA 2.0 WebServer is now live! 🚀   
+
 Compared to EasIFA 1.0, the new version expands enzyme data coverage from 46.9% (20.1M UniProt IDs) to 95.6% (41.1M UniProt IDs).  
 It also introduces the new Database module and Agent tools, enabling more efficient enzyme active-site annotation and automated analysis workflows.  
-👉 Access it [here](https://cadd.zju.edu.cn/easifa/): 
+
+> [!IMPORTANT]
+> **Update 2026.07.30 — Web server service interruption:** The EasIFA web servers are currently unavailable because our computing infrastructure provider failed to honor its agreement and imposed an unacceptable unilateral price increase. We strongly condemn this irresponsible breach of commitment, which directly caused this service interruption under circumstances. Recovery work is underway, but service is not expected to resume soon.
+>
+> Once service is restored, three parallel, redundant access links will be available:
+>
+> - **🚀 Primary Server**: [https://cadd.zju.edu.cn/easifa/](https://cadd.zju.edu.cn/easifa/)
+> - **🔄 Alternative Server 1**: [http://cadd.iddd.group/easifa/](http://cadd.iddd.group/easifa/)
+> - **🔄 Alternative Server 2**: [http://cadd.drugflow.com/easifa/](http://cadd.drugflow.com/easifa/)
+>
+> In the meantime, we strongly recommend deploying [EasIFA Core](https://github.com/wangxr0526/EasIFA2.0_Core) locally.
+
+
 
 
 # EasIFA
