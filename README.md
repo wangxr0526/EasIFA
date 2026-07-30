@@ -12,7 +12,7 @@ It also introduces the new Database module and Agent tools, enabling more effici
 > - **🔄 Alternative Server 1**: [http://cadd.iddd.group/easifa/](http://cadd.iddd.group/easifa/)
 > - **🔄 Alternative Server 2**: [http://cadd.drugflow.com/easifa/](http://cadd.drugflow.com/easifa/)
 >
-> In the meantime, we strongly recommend deploying [EasIFA Core](https://github.com/wangxr0526/EasIFA2.0_Core) locally.
+> In the meantime, we strongly recommend deploying [EasIFA Core](https://github.com/wangxr0526/EasIFA2.0_Core) locally. EasIFA Core provides the complete computational and inference capabilities of EasIFA 2.0; only the hosted API, web frontend, and database services are not included.
 
 
 
