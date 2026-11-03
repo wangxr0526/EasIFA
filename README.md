@@ -4,15 +4,15 @@ Compared to EasIFA 1.0, the new version expands enzyme data coverage from 46.9% 
 It also introduces the new Database module and Agent tools, enabling more efficient enzyme active-site annotation and automated analysis workflows.  
 
 > [!IMPORTANT]
-> **Update 2026.07.30 — Web server service interruption:** The EasIFA web servers are currently unavailable following unexpected adjustments to the service terms and pricing of the third-party computing infrastructure supporting our deployment. We are actively working on a new deployment plan, but restoring service will take time and is not expected soon.
+> **Update 2026.11.03 — EasIFA 2.0 web service restored:** The EasIFA 2.0 web service is available again. Thank you for your patience and support during the interruption.
 >
-> Once service is restored, three parallel, redundant access links will be available:
+> Access EasIFA 2.0 through any of the following links:
 >
 > - **🚀 Primary Server**: [https://cadd.zju.edu.cn/easifa/](https://cadd.zju.edu.cn/easifa/)
-> - **🔄 Alternative Server 1**: [http://cadd.iddd.group/easifa/](http://cadd.iddd.group/easifa/)
-> - **🔄 Alternative Server 2**: [http://cadd.drugflow.com/easifa/](http://cadd.drugflow.com/easifa/)
+> - **🔄 Alternative Server 1**: [https://cadd.iddd.group/easifa/](https://cadd.iddd.group/easifa/)
+> - **🔄 Alternative Server 2**: [https://cadd.drugflow.com/easifa/](https://cadd.drugflow.com/easifa/)
 >
-> In the meantime, we strongly recommend deploying [EasIFA2.0 Core](https://github.com/wangxr0526/EasIFA2.0_Core) locally. EasIFA2.0 Core provides the complete computational and inference capabilities of EasIFA 2.0; only the hosted API, web frontend, and database services are not included.
+> For local deployment, [EasIFA2.0 Core](https://github.com/wangxr0526/EasIFA2.0_Core) remains available. It provides the complete computational and inference capabilities of EasIFA 2.0; the hosted API, web frontend, and database services are not included.
 
 
 
